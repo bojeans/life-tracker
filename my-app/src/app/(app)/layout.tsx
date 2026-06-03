@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppShell } from "@/components/app-shell";
 
 export default async function AppLayout({
   children,
@@ -10,10 +10,5 @@ export default async function AppLayout({
   const session = await auth();
   if (!session) redirect("/auth/signin");
 
-  return (
-    <div className="flex min-h-screen">
-      <AppSidebar />
-      <main className="flex-1">{children}</main>
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

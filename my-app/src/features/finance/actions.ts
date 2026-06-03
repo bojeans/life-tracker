@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { transactionSchema } from "./transaction-schema";
 import type { TransactionDTO } from "./types";
+import { toTransactionDTO } from "./serialize";
 
 async function requireUserId(): Promise<string> {
   const session = await auth();
@@ -14,32 +15,7 @@ async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
-// Maps a Prisma row to a serializable DTO (Decimal -> number, Date -> ISO).
-type TransactionRow = {
-  id: string;
-  type: TransactionDTO["type"];
-  amount: unknown;
-  currency: string;
-  category: string;
-  description: string | null;
-  date: Date;
-  source: string;
-};
-
-function toDTO(row: TransactionRow): TransactionDTO {
-  return {
-    id: row.id,
-    type: row.type,
-    amount: Number(row.amount),
-    currency: row.currency,
-    category: row.category,
-    description: row.description,
-    date: row.date.toISOString(),
-    source: row.source,
-  };
-}
-
-export async function createTransaction(input: unknown) {
+export async function createTransaction(input: unknown): Promise<TransactionDTO> {
   const userId = await requireUserId();
   const data = transactionSchema.parse(input);
 
@@ -48,7 +24,7 @@ export async function createTransaction(input: unknown) {
   });
 
   revalidatePath("/finance");
-  return transaction;
+  return toTransactionDTO(transaction);
 }
 
 export async function getTransactions(): Promise<TransactionDTO[]> {
@@ -59,7 +35,7 @@ export async function getTransactions(): Promise<TransactionDTO[]> {
     orderBy: { date: "desc" },
   });
 
-  return rows.map(toDTO);
+  return rows.map(toTransactionDTO);
 }
 
 export async function deleteTransaction(id: string) {

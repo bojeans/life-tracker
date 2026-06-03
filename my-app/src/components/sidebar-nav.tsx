@@ -11,11 +11,11 @@ const navItems = [
   { href: "/travel", label: "Travel", icon: Plane },
 ];
 
-export function AppSidebar() {
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r bg-muted/30 p-4">
+    <div className="flex h-full flex-col">
       <div className="px-2 py-3 text-lg font-semibold">Life Tracker</div>
       <nav className="mt-2 flex flex-1 flex-col gap-1">
         {navItems.map(({ href, label, icon: Icon }) => {
@@ -24,6 +24,7 @@ export function AppSidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 active
@@ -39,11 +40,12 @@ export function AppSidebar() {
       </nav>
       <Link
         href="/auth/signout"
+        onClick={onNavigate}
         className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <LogOut className="size-4" />
         Sign out
       </Link>
-    </aside>
+    </div>
   );
 }

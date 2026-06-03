@@ -38,15 +38,29 @@ beforeEach(() => {
 
 describe("createTransaction", () => {
   it("validates input and persists it scoped to the current user", async () => {
-    create.mockResolvedValue({ id: "txn-1" });
+    create.mockResolvedValue({
+      id: "txn-1",
+      type: "EXPENSE",
+      amount: 42.5,
+      currency: "AUD",
+      category: "Groceries",
+      description: null,
+      date: new Date("2026-06-01T00:00:00.000Z"),
+      source: "MANUAL",
+    });
 
-    await createTransaction(validInput);
+    const result = await createTransaction(validInput);
 
     expect(create).toHaveBeenCalledOnce();
     const arg = create.mock.calls[0][0];
     expect(arg.data.userId).toBe("user-1");
     expect(arg.data.amount).toBe(42.5);
     expect(arg.data.currency).toBe("AUD");
+
+    // Returns a serializable DTO (number amount, ISO date) — no Decimal/Date objects
+    expect(result.amount).toBe(42.5);
+    expect(typeof result.amount).toBe("number");
+    expect(result.date).toBe("2026-06-01T00:00:00.000Z");
   });
 
   it("throws on invalid input without touching the db", async () => {
