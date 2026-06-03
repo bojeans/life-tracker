@@ -76,6 +76,34 @@ export async function importTransactionsCsv(
   return { imported, skipped: valid.length - imported, errors };
 }
 
+export async function updateTransaction(
+  id: string,
+  input: unknown,
+): Promise<void> {
+  const userId = await requireUserId();
+  const data = transactionSchema.parse(input);
+
+  // updateMany scopes the where clause to the owner so a user can't edit
+  // another user's row. source/externalId are intentionally left unchanged.
+  const result = await db.transaction.updateMany({
+    where: { id, userId },
+    data: {
+      type: data.type,
+      amount: data.amount,
+      currency: data.currency,
+      category: data.category,
+      description: data.description ?? null,
+      date: data.date,
+    },
+  });
+
+  if (result.count === 0) {
+    throw new Error("Transaction not found");
+  }
+
+  revalidatePath("/finance");
+}
+
 export async function deleteTransaction(id: string) {
   const userId = await requireUserId();
 

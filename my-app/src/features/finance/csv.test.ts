@@ -106,8 +106,14 @@ describe("parseWideTransactionsCsv", () => {
     const { valid } = parseWideTransactionsCsv(wide);
     const feb = valid.find((t) => t.category === "gym")!;
     expect(feb.date instanceof Date).toBe(true);
-    expect((feb.date as Date).getMonth()).toBe(1); // February
-    expect((feb.date as Date).getDate()).toBe(15);
+    // Assert via UTC ISO so it's stable regardless of the runner's timezone.
+    expect((feb.date as Date).toISOString().slice(0, 10)).toBe("2026-02-15");
+  });
+
+  it("keeps 01/01 in January regardless of timezone (no UTC drift)", () => {
+    const { valid } = parseWideTransactionsCsv(wide);
+    const jan = valid.find((t) => t.category === "groceries")!;
+    expect((jan.date as Date).toISOString().slice(0, 10)).toBe("2026-01-01");
   });
 
   it("attaches a paired '<x> desc' column as the description", () => {

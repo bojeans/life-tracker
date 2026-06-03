@@ -92,7 +92,9 @@ export function FinanceDashboardView({
                 <div className="min-w-0">
                   <p className="truncate font-medium">{t.category}</p>
                   <p className="text-muted-foreground text-sm">
-                    {new Date(t.date).toLocaleDateString("en-AU")}
+                    {new Date(t.date).toLocaleDateString("en-AU", {
+                      timeZone: "UTC",
+                    })}
                     {t.description ? ` · ${t.description}` : ""}
                   </p>
                 </div>

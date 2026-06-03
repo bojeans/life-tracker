@@ -5,6 +5,7 @@ const auth = vi.fn();
 const create = vi.fn();
 const createMany = vi.fn();
 const findMany = vi.fn();
+const updateMany = vi.fn();
 const deleteMany = vi.fn();
 
 vi.mock("@/lib/auth", () => ({ auth: () => auth() }));
@@ -14,6 +15,7 @@ vi.mock("@/lib/db", () => ({
       create: (...args: unknown[]) => create(...args),
       createMany: (...args: unknown[]) => createMany(...args),
       findMany: (...args: unknown[]) => findMany(...args),
+      updateMany: (...args: unknown[]) => updateMany(...args),
       deleteMany: (...args: unknown[]) => deleteMany(...args),
     },
   },
@@ -24,6 +26,7 @@ import {
   createTransaction,
   getTransactions,
   deleteTransaction,
+  updateTransaction,
   importTransactionsCsv,
 } from "./actions";
 
@@ -154,6 +157,40 @@ describe("importTransactionsCsv", () => {
   it("requires authentication", async () => {
     auth.mockResolvedValue(null);
     await expect(importTransactionsCsv(csv)).rejects.toThrow("Unauthorized");
+  });
+});
+
+describe("updateTransaction", () => {
+  it("validates and updates only rows owned by the current user", async () => {
+    updateMany.mockResolvedValue({ count: 1 });
+
+    await updateTransaction("txn-1", validInput);
+
+    expect(updateMany).toHaveBeenCalledOnce();
+    const arg = updateMany.mock.calls[0][0];
+    expect(arg.where).toEqual({ id: "txn-1", userId: "user-1" });
+    expect(arg.data).toMatchObject({ amount: 42.5, category: "Groceries" });
+  });
+
+  it("throws when no owned row matched", async () => {
+    updateMany.mockResolvedValue({ count: 0 });
+    await expect(updateTransaction("txn-x", validInput)).rejects.toThrow(
+      "Transaction not found",
+    );
+  });
+
+  it("throws on invalid input without touching the db", async () => {
+    await expect(
+      updateTransaction("txn-1", { ...validInput, amount: -5 }),
+    ).rejects.toThrow();
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it("requires authentication", async () => {
+    auth.mockResolvedValue(null);
+    await expect(updateTransaction("txn-1", validInput)).rejects.toThrow(
+      "Unauthorized",
+    );
   });
 });
 

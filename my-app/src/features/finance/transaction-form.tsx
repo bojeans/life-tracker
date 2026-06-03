@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { transactionSchema, TRANSACTION_TYPES } from "./transaction-schema";
-import { createTransaction } from "./actions";
+import { createTransaction, updateTransaction } from "./actions";
+import type { TransactionDTO } from "./types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +16,37 @@ type FormOutput = z.output<typeof transactionSchema>;
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function TransactionForm() {
+function blankDefaults(): FormInput {
+  return {
+    type: "EXPENSE",
+    amount: undefined,
+    category: "",
+    description: "",
+    date: today(),
+    currency: "AUD",
+  };
+}
+
+function defaultsFrom(t: TransactionDTO): FormInput {
+  return {
+    type: t.type,
+    amount: t.amount,
+    category: t.category,
+    description: t.description ?? "",
+    date: t.date.slice(0, 10),
+    currency: t.currency,
+  };
+}
+
+export function TransactionForm({
+  transaction,
+  onSuccess,
+}: {
+  transaction?: TransactionDTO;
+  onSuccess?: () => void;
+}) {
   const queryClient = useQueryClient();
+  const isEdit = Boolean(transaction);
 
   const {
     register,
@@ -25,28 +55,24 @@ export function TransactionForm() {
     formState: { errors },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(transactionSchema),
-    defaultValues: {
-      type: "EXPENSE",
-      amount: undefined,
-      category: "",
-      description: "",
-      date: today(),
-      currency: "AUD",
-    },
+    defaultValues: transaction ? defaultsFrom(transaction) : blankDefaults(),
   });
 
   const mutation = useMutation({
-    mutationFn: (values: FormOutput) => createTransaction(values),
+    mutationFn: async (values: FormOutput) => {
+      if (transaction) {
+        await updateTransaction(transaction.id, values);
+      } else {
+        await createTransaction(values);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      reset({
-        type: "EXPENSE",
-        amount: undefined,
-        category: "",
-        description: "",
-        date: today(),
-        currency: "AUD",
-      });
+      if (isEdit) {
+        onSuccess?.();
+      } else {
+        reset(blankDefaults());
+      }
     },
   });
 
@@ -54,7 +80,7 @@ export function TransactionForm() {
     <form
       onSubmit={handleSubmit((values) => mutation.mutate(values))}
       className="space-y-4 rounded-lg border p-4"
-      aria-label="Add transaction"
+      aria-label={isEdit ? "Edit transaction" : "Add transaction"}
     >
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
@@ -109,7 +135,11 @@ export function TransactionForm() {
       </div>
 
       <Button type="submit" disabled={mutation.isPending}>
-        {mutation.isPending ? "Adding…" : "Add transaction"}
+        {mutation.isPending
+          ? "Saving…"
+          : isEdit
+            ? "Save changes"
+            : "Add transaction"}
       </Button>
       {mutation.isError && (
         <p className="text-destructive text-sm">

@@ -55,24 +55,32 @@ function parseAmount(raw: string): number {
 }
 
 // Accepts DD/MM/YYYY (or D/M/YYYY) and ISO YYYY-MM-DD. Returns null if invalid.
+// Dates are constructed at UTC midnight so the calendar day is preserved
+// regardless of the server's timezone (a local-midnight Date would shift the
+// day when stored/serialized as UTC — e.g. 01/01 in UTC+11 became Dec 31).
 function parseFlexibleDate(raw: string): Date | null {
-  const dmy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmy) {
-    const [, d, m, y] = dmy.map(Number);
-    const date = new Date(y, m - 1, d);
-    const valid =
-      date.getFullYear() === y &&
-      date.getMonth() === m - 1 &&
-      date.getDate() === d;
-    return valid ? date : null;
+  const match =
+    raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/) ?? // DD/MM/YYYY
+    null;
+  if (match) {
+    const [, d, m, y] = match.map(Number);
+    return buildUtcDate(y, m, d);
   }
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/); // YYYY-MM-DD
   if (iso) {
     const [, y, m, d] = iso.map(Number);
-    const date = new Date(y, m - 1, d);
-    return Number.isNaN(date.getTime()) ? null : date;
+    return buildUtcDate(y, m, d);
   }
   return null;
+}
+
+function buildUtcDate(y: number, m: number, d: number): Date | null {
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const valid =
+    date.getUTCFullYear() === y &&
+    date.getUTCMonth() === m - 1 &&
+    date.getUTCDate() === d;
+  return valid ? date : null;
 }
 
 /**
