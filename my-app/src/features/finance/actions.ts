@@ -6,6 +6,13 @@ import { db } from "@/lib/db";
 import { transactionSchema } from "./transaction-schema";
 import type { TransactionDTO } from "./types";
 import { toTransactionDTO } from "./serialize";
+import { parseTransactionsCsv, externalIdFor } from "./csv";
+
+export type CsvImportResult = {
+  imported: number;
+  skipped: number;
+  errors: { row: number; message: string }[];
+};
 
 async function requireUserId(): Promise<string> {
   const session = await auth();
@@ -36,6 +43,37 @@ export async function getTransactions(): Promise<TransactionDTO[]> {
   });
 
   return rows.map(toTransactionDTO);
+}
+
+export async function importTransactionsCsv(
+  csvText: string,
+): Promise<CsvImportResult> {
+  const userId = await requireUserId();
+  const { valid, errors } = parseTransactionsCsv(csvText);
+
+  let imported = 0;
+  if (valid.length > 0) {
+    // skipDuplicates relies on @@unique([userId, source, externalId]) so the
+    // same CSV row isn't imported twice across re-uploads.
+    const result = await db.transaction.createMany({
+      data: valid.map((t) => ({
+        userId,
+        type: t.type,
+        amount: t.amount,
+        currency: t.currency,
+        category: t.category,
+        description: t.description ?? null,
+        date: t.date,
+        source: "CSV" as const,
+        externalId: externalIdFor(t),
+      })),
+      skipDuplicates: true,
+    });
+    imported = result.count;
+  }
+
+  revalidatePath("/finance");
+  return { imported, skipped: valid.length - imported, errors };
 }
 
 export async function deleteTransaction(id: string) {

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mocks must be declared before importing the module under test.
 const auth = vi.fn();
 const create = vi.fn();
+const createMany = vi.fn();
 const findMany = vi.fn();
 const deleteMany = vi.fn();
 
@@ -11,6 +12,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     transaction: {
       create: (...args: unknown[]) => create(...args),
+      createMany: (...args: unknown[]) => createMany(...args),
       findMany: (...args: unknown[]) => findMany(...args),
       deleteMany: (...args: unknown[]) => deleteMany(...args),
     },
@@ -22,6 +24,7 @@ import {
   createTransaction,
   getTransactions,
   deleteTransaction,
+  importTransactionsCsv,
 } from "./actions";
 
 const validInput = {
@@ -112,6 +115,45 @@ describe("getTransactions", () => {
     ]);
     // amount must be a plain number, not a Decimal/object
     expect(typeof result[0].amount).toBe("number");
+  });
+});
+
+describe("importTransactionsCsv", () => {
+  const csv = [
+    "date,type,amount,category",
+    "2026-06-01,EXPENSE,42.50,Groceries",
+    "2026-06-02,INCOME,5000,Salary",
+    "2026-06-03,EXPENSE,not-a-number,Food",
+  ].join("\n");
+
+  it("persists valid rows as CSV-sourced and reports skipped + errors", async () => {
+    // 2 valid rows; pretend 1 was a duplicate that got skipped.
+    createMany.mockResolvedValue({ count: 1 });
+
+    const result = await importTransactionsCsv(csv);
+
+    expect(createMany).toHaveBeenCalledOnce();
+    const arg = createMany.mock.calls[0][0];
+    expect(arg.skipDuplicates).toBe(true);
+    expect(arg.data).toHaveLength(2);
+    expect(arg.data[0]).toMatchObject({ userId: "user-1", source: "CSV" });
+    expect(arg.data[0].externalId).toEqual(expect.any(String));
+
+    expect(result.imported).toBe(1);
+    expect(result.skipped).toBe(1); // 2 valid - 1 inserted
+    expect(result.errors).toHaveLength(1); // the bad amount row
+    expect(result.errors[0].row).toBe(4);
+  });
+
+  it("does not call the db when there are no valid rows", async () => {
+    const result = await importTransactionsCsv("date,amount\n,oops");
+    expect(createMany).not.toHaveBeenCalled();
+    expect(result.imported).toBe(0);
+  });
+
+  it("requires authentication", async () => {
+    auth.mockResolvedValue(null);
+    await expect(importTransactionsCsv(csv)).rejects.toThrow("Unauthorized");
   });
 });
 
