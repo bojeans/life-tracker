@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Bar,
   BarChart,
@@ -15,9 +14,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getTransactions } from "./actions";
 import { monthlyTotals } from "./analytics";
 import { summarizeTransactions } from "./summary";
+import { formatCurrency } from "./format";
 import type { TransactionDTO } from "./types";
 
 const CATEGORY_COLORS = [
@@ -30,33 +29,18 @@ const CATEGORY_COLORS = [
   "#64748b",
 ];
 
-const aud = (n: number) =>
-  new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: "AUD",
-    maximumFractionDigits: 0,
-  }).format(n);
+const audWhole = (n: number) => formatCurrency(n, { whole: true });
 
-export function FinanceDashboard({
-  initialData,
+export function FinanceCharts({
+  transactions,
 }: {
-  initialData: TransactionDTO[];
+  transactions: TransactionDTO[];
 }) {
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["transactions"],
-    queryFn: () => getTransactions(),
-    initialData,
-  });
-
   const monthly = useMemo(() => monthlyTotals(transactions), [transactions]);
   const byCategory = useMemo(
     () => summarizeTransactions(transactions).byCategory,
     [transactions],
   );
-
-  if (transactions.length === 0) {
-    return null;
-  }
 
   return (
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -70,9 +54,9 @@ export function FinanceDashboard({
               tickLine={false}
               axisLine={false}
               width={48}
-              tickFormatter={(v) => aud(Number(v))}
+              tickFormatter={(v) => audWhole(Number(v))}
             />
-            <Tooltip formatter={(v) => aud(Number(v))} />
+            <Tooltip formatter={(v) => audWhole(Number(v))} />
             <Legend />
             <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
             <Bar dataKey="expense" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -83,7 +67,7 @@ export function FinanceDashboard({
       <ChartCard title="Spending by category">
         {byCategory.length === 0 ? (
           <div className="text-muted-foreground flex h-[260px] items-center justify-center text-sm">
-            No expenses yet.
+            No expenses in this period.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={260}>
@@ -102,7 +86,7 @@ export function FinanceDashboard({
                   <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => aud(Number(v))} />
+              <Tooltip formatter={(v) => audWhole(Number(v))} />
             </PieChart>
           </ResponsiveContainer>
         )}

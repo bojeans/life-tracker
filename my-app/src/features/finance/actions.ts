@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { transactionSchema } from "./transaction-schema";
 import type { TransactionDTO } from "./types";
 import { toTransactionDTO } from "./serialize";
-import { parseTransactionsCsv, externalIdFor } from "./csv";
+import { parseAnyTransactionsCsv, externalIdFor } from "./csv";
 
 export type CsvImportResult = {
   imported: number;
@@ -49,7 +49,7 @@ export async function importTransactionsCsv(
   csvText: string,
 ): Promise<CsvImportResult> {
   const userId = await requireUserId();
-  const { valid, errors } = parseTransactionsCsv(csvText);
+  const { valid, errors } = parseAnyTransactionsCsv(csvText);
 
   let imported = 0;
   if (valid.length > 0) {
