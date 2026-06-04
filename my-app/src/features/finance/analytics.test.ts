@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { monthlyTotals, availableMonths } from "./analytics";
+import { monthlyTotals } from "./analytics";
 import type { TransactionDTO } from "./types";
 
 function txn(date: string, type: "INCOME" | "EXPENSE", amount: number): TransactionDTO {
@@ -48,26 +48,5 @@ describe("monthlyTotals", () => {
       "2026-05",
       "2026-06",
     ]);
-  });
-});
-
-describe("availableMonths", () => {
-  it("returns distinct months newest-first", () => {
-    const result = availableMonths([
-      txn("2026-04-01", "INCOME", 200),
-      txn("2026-06-15", "EXPENSE", 100),
-      txn("2026-06-02", "EXPENSE", 50),
-      txn("2026-05-01", "EXPENSE", 50),
-    ]);
-
-    expect(result.map((m) => m.value)).toEqual([
-      "2026-06",
-      "2026-05",
-      "2026-04",
-    ]);
-  });
-
-  it("returns an empty array for no transactions", () => {
-    expect(availableMonths([])).toEqual([]);
   });
 });

@@ -3,12 +3,17 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTransactions } from "./actions";
-import { availableMonths } from "./analytics";
 import { summarizeTransactions } from "./summary";
 import { formatCurrency } from "./format";
 import { FinanceCharts } from "./finance-charts";
+import { TransactionFilters } from "./transaction-filters";
+import {
+  availableCategories,
+  filterTransactions,
+  EMPTY_FILTER,
+  type TransactionFilter,
+} from "./filters";
 import type { TransactionDTO } from "./types";
-import { cn } from "@/lib/utils";
 
 export function FinanceDashboardView({
   initialData,
@@ -21,15 +26,15 @@ export function FinanceDashboardView({
     initialData,
   });
 
-  const [month, setMonth] = useState<string>("all");
-  const months = useMemo(() => availableMonths(transactions), [transactions]);
+  const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
+  const categories = useMemo(
+    () => availableCategories(transactions),
+    [transactions],
+  );
 
   const filtered = useMemo(
-    () =>
-      month === "all"
-        ? transactions
-        : transactions.filter((t) => t.date.slice(0, 7) === month),
-    [transactions, month],
+    () => filterTransactions(transactions, filter),
+    [transactions, filter],
   );
 
   const summary = useMemo(() => summarizeTransactions(filtered), [filtered]);
@@ -46,21 +51,11 @@ export function FinanceDashboardView({
 
   return (
     <div className="space-y-6">
-      {/* Month filter */}
-      <div className="flex flex-wrap gap-2">
-        <FilterChip active={month === "all"} onClick={() => setMonth("all")}>
-          All
-        </FilterChip>
-        {months.map((m) => (
-          <FilterChip
-            key={m.value}
-            active={month === m.value}
-            onClick={() => setMonth(m.value)}
-          >
-            {m.label}
-          </FilterChip>
-        ))}
-      </div>
+      <TransactionFilters
+        value={filter}
+        onChange={setFilter}
+        categories={categories}
+      />
 
       {/* Summary cards */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -112,31 +107,6 @@ export function FinanceDashboardView({
         )}
       </section>
     </div>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1 text-sm font-medium transition-colors",
-        active
-          ? "bg-foreground text-background border-foreground"
-          : "text-muted-foreground hover:bg-muted",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 

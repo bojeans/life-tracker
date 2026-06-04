@@ -7,6 +7,9 @@ export type SharedFinance = {
   ownerName: string | null;
   summary: FinanceSummary;
   recent: TransactionDTO[];
+  // Full transaction set so the read-only view can render the same charts
+  // (monthly income/expense, spending by category) as the owner dashboard.
+  all: TransactionDTO[];
 };
 
 // Public, read-only lookup by share token. No auth — anyone with the token
@@ -30,5 +33,6 @@ export async function getSharedFinance(
     ownerName: user.name,
     summary: summarizeTransactions(transactions),
     recent: transactions.slice(0, 8),
+    all: transactions,
   };
 }

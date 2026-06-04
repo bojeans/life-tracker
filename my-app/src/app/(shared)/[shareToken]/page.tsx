@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSharedFinance } from "@/features/finance/shared";
+import { FinanceCharts } from "@/features/finance/finance-charts";
 
 interface Props {
   params: Promise<{ shareToken: string }>;
@@ -23,8 +24,7 @@ export default async function SharedPage({ params }: Props) {
 
   if (!data) notFound();
 
-  const { ownerName, summary, recent } = data;
-  const topCategory = summary.byCategory[0]?.total ?? 0;
+  const { ownerName, summary, recent, all } = data;
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-8">
@@ -53,30 +53,8 @@ export default async function SharedPage({ params }: Props) {
         />
       </section>
 
-      {/* Spending by category */}
-      {summary.byCategory.length > 0 && (
-        <section className="space-y-3 rounded-lg border p-4">
-          <h2 className="font-semibold">Spending by category</h2>
-          <ul className="space-y-2">
-            {summary.byCategory.map((c) => (
-              <li key={c.category} className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>{c.category}</span>
-                  <span className="text-muted-foreground">{audCents(c.total)}</span>
-                </div>
-                <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
-                  <div
-                    className="bg-foreground h-full rounded-full"
-                    style={{
-                      width: `${topCategory ? (c.total / topCategory) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Charts — same visuals as the owner dashboard */}
+      {all.length > 0 && <FinanceCharts transactions={all} />}
 
       {/* Recent transactions */}
       <section className="space-y-3">

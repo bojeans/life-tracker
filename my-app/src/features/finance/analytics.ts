@@ -18,17 +18,6 @@ function formatMonthLabel(month: string): string {
   });
 }
 
-// Distinct months present in the data, newest first, for filter controls.
-export function availableMonths(
-  transactions: TransactionDTO[],
-): { value: string; label: string }[] {
-  const months = new Set<string>();
-  for (const t of transactions) months.add(t.date.slice(0, 7));
-  return [...months]
-    .sort((a, b) => b.localeCompare(a))
-    .map((m) => ({ value: m, label: formatMonthLabel(m) }));
-}
-
 // Aggregates transactions into per-month income/expense/net, oldest month first.
 export function monthlyTotals(transactions: TransactionDTO[]): MonthlyPoint[] {
   const map = new Map<string, { income: number; expense: number }>();

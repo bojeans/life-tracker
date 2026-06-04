@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTransactions, deleteTransaction } from "./actions";
 import { TransactionForm } from "./transaction-form";
+import { TransactionFilters } from "./transaction-filters";
+import {
+  availableCategories,
+  filterTransactions,
+  EMPTY_FILTER,
+  type TransactionFilter,
+} from "./filters";
 import type { TransactionDTO } from "./types";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,12 +34,22 @@ export function TransactionList({
 }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<TransactionDTO | null>(null);
+  const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["transactions"],
     queryFn: () => getTransactions(),
     initialData,
   });
+
+  const categories = useMemo(
+    () => availableCategories(transactions),
+    [transactions],
+  );
+  const filtered = useMemo(
+    () => filterTransactions(transactions, filter),
+    [transactions, filter],
+  );
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteTransaction(id),
@@ -50,8 +67,22 @@ export function TransactionList({
 
   return (
     <>
-      <ul className="divide-y rounded-lg border">
-        {transactions.map((t) => (
+      <div className="space-y-4">
+        <TransactionFilters
+          value={filter}
+          onChange={setFilter}
+          categories={categories}
+        />
+        <p className="text-muted-foreground text-sm">
+          Showing {filtered.length} of {transactions.length}
+        </p>
+        {filtered.length === 0 ? (
+          <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
+            No transactions match these filters.
+          </p>
+        ) : (
+          <ul className="divide-y rounded-lg border">
+            {filtered.map((t) => (
           <li key={t.id} className="flex items-center justify-between gap-4 p-3">
             <div className="min-w-0">
               <p className="truncate font-medium">{t.category}</p>
@@ -83,8 +114,10 @@ export function TransactionList({
               </Button>
             </div>
           </li>
-        ))}
-      </ul>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <Dialog
         open={editing !== null}
