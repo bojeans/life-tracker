@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
 
@@ -34,6 +36,7 @@ export function TransactionList({
 }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<TransactionDTO | null>(null);
+  const [confirming, setConfirming] = useState<TransactionDTO | null>(null);
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
 
   const { data: transactions = [] } = useQuery({
@@ -53,9 +56,31 @@ export function TransactionList({
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteTransaction(id),
-    onSuccess: () =>
+    // Optimistically drop the row so the UI feels instant; roll back on error.
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["transactions"] });
+      const previous = queryClient.getQueryData<TransactionDTO[]>([
+        "transactions",
+      ]);
+      queryClient.setQueryData<TransactionDTO[]>(["transactions"], (old) =>
+        (old ?? []).filter((t) => t.id !== id),
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["transactions"], context.previous);
+      }
+    },
+    onSettled: () =>
       queryClient.invalidateQueries({ queryKey: ["transactions"] }),
   });
+
+  function confirmDelete() {
+    if (!confirming) return;
+    remove.mutate(confirming.id);
+    setConfirming(null);
+  }
 
   if (transactions.length === 0) {
     return (
@@ -107,8 +132,7 @@ export function TransactionList({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => remove.mutate(t.id)}
-                disabled={remove.isPending}
+                onClick={() => setConfirming(t)}
               >
                 Delete
               </Button>
@@ -133,6 +157,30 @@ export function TransactionList({
               onSuccess={() => setEditing(null)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirming !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirming(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogTitle>Delete transaction?</DialogTitle>
+          <DialogDescription>
+            {confirming
+              ? `This permanently deletes "${confirming.category}" (${formatAmount(confirming)}). This can't be undone.`
+              : ""}
+          </DialogDescription>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirming(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
