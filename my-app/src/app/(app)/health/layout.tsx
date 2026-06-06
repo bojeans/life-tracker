@@ -1,8 +1,11 @@
 import { SubNav } from "@/features/health/sub-nav";
 
 const tabs = [
+  { href: "/health", label: "Overview", exact: true },
   { href: "/health/diet", label: "Diet" },
+  { href: "/health/exercise", label: "Exercise" },
   { href: "/health/weight", label: "Weight" },
+  { href: "/health/profile", label: "Profile" },
 ];
 
 export default function HealthLayout({

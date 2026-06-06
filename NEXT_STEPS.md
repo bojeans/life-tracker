@@ -1,6 +1,13 @@
 # Life Tracker — Next Steps
 
-_Last updated: 2026-06-06. Finance complete; Health (Diet + Weight) scaffolded; Exercise + Travel not started._
+_Last updated: 2026-06-06. Finance complete; Health (Diet + Weight + Exercise + energy-balance Overview) built; Travel not started._
+
+## Health — Exercise + energy balance (new)
+- **Profile** (`/health/profile`) — height/age/sex/activity (+ optional body-fat %), feeds BMR/TDEE.
+- **Exercise** (`/health/exercise`) — CRUD + CSV + dashboard; calories estimated via **METs × bodyweight × duration** (auto-fills from your latest weight; editable). Fitness/step APIs (Fitbit/Strava) deferred.
+- **Overview** (`/health`) — combines Diet (intake) + Exercise (burn) + profile baseline (Mifflin–St Jeor / Katch–McArdle BMR × activity) into daily net calories and a **predicted vs actual weight change**. Health tabs: Overview | Diet | Exercise | Weight | Profile.
+- Manual check worth doing: set Profile + a weight, log a workout (watch calories auto-calc) and a day of food, confirm the Overview shows intake-vs-burn and predicted Δweight.
+
 
 ## Where we are
 

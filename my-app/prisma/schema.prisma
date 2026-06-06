@@ -24,9 +24,11 @@ model User {
   accounts      Account[]
   sessions      Session[]
   transactions  Transaction[]
-  dietEntries   DietEntry[]
-  weightEntries WeightEntry[]
-  foodItems     FoodItem[]
+  dietEntries     DietEntry[]
+  weightEntries   WeightEntry[]
+  foodItems       FoodItem[]
+  exerciseEntries ExerciseEntry[]
+  profile         Profile?
 }
 
 model Account {
@@ -190,6 +192,60 @@ model FoodItem {
   // NULLs); scanned items dedupe on their barcode.
   @@unique([userId, barcode])
   @@index([userId, name])
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+// Baseline (non-exercise) activity level. Logged workouts are added on top, so
+// keep this at your day-to-day movement excluding deliberate exercise.
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+// One-per-user profile holding the inputs for BMR/TDEE (energy-balance) math.
+model Profile {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  heightCm      Decimal       @db.Decimal(5, 1)
+  birthYear     Int
+  sex           Sex
+  activityLevel ActivityLevel @default(LIGHT)
+  bodyFatPct    Decimal?      @db.Decimal(4, 1)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A logged workout/activity. caloriesBurned is computed from MET × bodyweight ×
+// duration (editable), or entered directly. steps/distance are optional extras.
+model ExerciseEntry {
+  id             String       @id @default(cuid())
+  userId         String
+  date           DateTime
+  activity       String
+  durationMin    Decimal?     @db.Decimal(7, 1)
+  met            Decimal?     @db.Decimal(4, 1)
+  caloriesBurned Decimal      @db.Decimal(8, 1)
+  steps          Int?
+  distanceKm     Decimal?     @db.Decimal(7, 2)
+  note           String?
+  source         HealthSource @default(MANUAL)
+  externalId     String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, source, externalId])
+  @@index([userId, date])
 }
 
 // A bodyweight measurement, for weight-management trend analysis.
