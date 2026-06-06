@@ -5,6 +5,8 @@ import type { TransactionDTO } from "./types";
 
 export type SharedFinance = {
   ownerName: string | null;
+  // Whether this is a public sandbox account (enables the "Launch demo" CTA).
+  isDemo: boolean;
   summary: FinanceSummary;
   recent: TransactionDTO[];
   // Full transaction set so the read-only view can render the same charts
@@ -21,6 +23,7 @@ export async function getSharedFinance(
     where: { shareToken },
     select: {
       name: true,
+      isDemo: true,
       transactions: { orderBy: { date: "desc" } },
     },
   });
@@ -31,6 +34,7 @@ export async function getSharedFinance(
 
   return {
     ownerName: user.name,
+    isDemo: user.isDemo,
     summary: summarizeTransactions(transactions),
     recent: transactions.slice(0, 8),
     all: transactions,

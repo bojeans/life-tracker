@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { resolveActorUserId } from "@/lib/actor";
 import { db } from "@/lib/db";
 import { dietEntrySchema } from "./diet-schema";
 import type { DietEntryDTO } from "./types";
@@ -26,12 +26,9 @@ export type DietCsvImportResult = {
   errors: { row: number; message: string }[];
 };
 
+// Owner (signed-in) or a gated demo visitor — see @/lib/actor.
 async function requireUserId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-  return session.user.id;
+  return resolveActorUserId();
 }
 
 export async function createDietEntry(input: unknown): Promise<DietEntryDTO> {

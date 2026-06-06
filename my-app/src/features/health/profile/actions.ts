@@ -1,18 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { resolveActorUserId } from "@/lib/actor";
 import { db } from "@/lib/db";
 import { profileSchema } from "./profile-schema";
 import type { ProfileDTO } from "./types";
 import { toProfileDTO } from "./serialize";
 
+// Owner (signed-in) or a gated demo visitor — see @/lib/actor.
 async function requireUserId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-  return session.user.id;
+  return resolveActorUserId();
 }
 
 export async function getProfile(): Promise<ProfileDTO | null> {

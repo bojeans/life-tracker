@@ -2,6 +2,9 @@
 
 _Last updated: 2026-06-06. Finance complete; Health (Diet + Weight + Exercise + energy-balance Overview) built; Travel not started._
 
+## Interactive recruiter demo (new)
+The public `/shared/[shareToken]` view has a **"Launch interactive demo"** button: recruiters enter the real app as the demo account (`User.isDemo` gated) and can **add/edit/delete across all of Finance + Health**, watching dashboards update live. A demo banner offers **Exit** and **Reset demo data**. Built without NextAuth (DB sessions) via a gated `demo_user` cookie + `resolveActorUserId()` chokepoint. Note: it's a *shared* sandbox (everyone edits the same demo account; Reset restores it). Possible follow-ups: per-visitor isolated demo accounts; rate-limiting; a periodic auto-reset.
+
 ## Health — Exercise + energy balance (new)
 - **Profile** (`/health/profile`) — height/age/sex/activity (+ optional body-fat %), feeds BMR/TDEE.
 - **Exercise** (`/health/exercise`) — CRUD + CSV + dashboard; calories estimated via **METs × bodyweight × duration** (auto-fills from your latest weight; editable). Fitness/step APIs (Fitbit/Strava) deferred.

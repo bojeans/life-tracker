@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { isDemoActor } from "@/lib/actor";
 
 export default async function AppLayout({
   children,
@@ -8,7 +9,8 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  if (!session) redirect("/auth/signin");
+  const demo = await isDemoActor();
+  if (!session && !demo) redirect("/auth/signin");
 
-  return <AppShell>{children}</AppShell>;
+  return <AppShell isDemo={demo}>{children}</AppShell>;
 }

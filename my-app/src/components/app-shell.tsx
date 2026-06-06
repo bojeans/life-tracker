@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import { SidebarNav } from "@/components/sidebar-nav";
+import { DemoBanner } from "@/features/demo/demo-banner";
 import {
   Sheet,
   SheetContent,
@@ -10,7 +11,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  isDemo = false,
+}: {
+  children: React.ReactNode;
+  isDemo?: boolean;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -37,7 +44,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <span className="font-semibold">Life Tracker</span>
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        {isDemo && <DemoBanner />}
+        {children}
+      </main>
     </div>
   );
 }

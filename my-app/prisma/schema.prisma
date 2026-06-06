@@ -20,6 +20,10 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   shareToken String? @unique @default(cuid())
+  // When true, this account is a public sandbox: visitors holding its
+  // shareToken can act as it (add/edit/delete) via demo mode. Never set on a
+  // real user — it's the gate that protects owner data.
+  isDemo     Boolean @default(false)
 
   accounts      Account[]
   sessions      Session[]

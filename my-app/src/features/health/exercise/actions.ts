@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { resolveActorUserId } from "@/lib/actor";
 import { db } from "@/lib/db";
 import { exerciseEntrySchema } from "./exercise-schema";
 import type { ExerciseEntryDTO } from "./types";
@@ -14,12 +14,9 @@ export type ExerciseCsvImportResult = {
   errors: { row: number; message: string }[];
 };
 
+// Owner (signed-in) or a gated demo visitor — see @/lib/actor.
 async function requireUserId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-  return session.user.id;
+  return resolveActorUserId();
 }
 
 function persistFields(data: ReturnType<typeof exerciseEntrySchema.parse>) {

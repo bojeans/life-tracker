@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mocks must be declared before importing the module under test.
-const auth = vi.fn();
+const resolveActorUserId = vi.fn();
 const create = vi.fn();
 const createMany = vi.fn();
 const findMany = vi.fn();
 const updateMany = vi.fn();
 const deleteMany = vi.fn();
 
-vi.mock("@/lib/auth", () => ({ auth: () => auth() }));
+vi.mock("@/lib/actor", () => ({
+  resolveActorUserId: () => resolveActorUserId(),
+}));
 vi.mock("@/lib/db", () => ({
   db: {
     transaction: {
@@ -39,7 +41,7 @@ const validInput = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  auth.mockResolvedValue({ user: { id: "user-1" } });
+  resolveActorUserId.mockResolvedValue("user-1");
 });
 
 describe("createTransaction", () => {
@@ -77,7 +79,7 @@ describe("createTransaction", () => {
   });
 
   it("throws Unauthorized when there is no session", async () => {
-    auth.mockResolvedValue(null);
+    resolveActorUserId.mockRejectedValue(new Error("Unauthorized"));
     await expect(createTransaction(validInput)).rejects.toThrow("Unauthorized");
     expect(create).not.toHaveBeenCalled();
   });
@@ -155,7 +157,7 @@ describe("importTransactionsCsv", () => {
   });
 
   it("requires authentication", async () => {
-    auth.mockResolvedValue(null);
+    resolveActorUserId.mockRejectedValue(new Error("Unauthorized"));
     await expect(importTransactionsCsv(csv)).rejects.toThrow("Unauthorized");
   });
 });
@@ -187,7 +189,7 @@ describe("updateTransaction", () => {
   });
 
   it("requires authentication", async () => {
-    auth.mockResolvedValue(null);
+    resolveActorUserId.mockRejectedValue(new Error("Unauthorized"));
     await expect(updateTransaction("txn-1", validInput)).rejects.toThrow(
       "Unauthorized",
     );
