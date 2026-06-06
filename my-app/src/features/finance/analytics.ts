@@ -1,4 +1,5 @@
 import type { TransactionDTO } from "./types";
+import { formatMonthLabel } from "@/features/shared/dates";
 
 export type MonthlyPoint = {
   month: string; // "YYYY-MM"
@@ -9,14 +10,6 @@ export type MonthlyPoint = {
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
-
-function formatMonthLabel(month: string): string {
-  const [year, m] = month.split("-").map(Number);
-  return new Date(year, m - 1, 1).toLocaleDateString("en-AU", {
-    month: "short",
-    year: "numeric",
-  });
-}
 
 // Aggregates transactions into per-month income/expense/net, oldest month first.
 export function monthlyTotals(transactions: TransactionDTO[]): MonthlyPoint[] {

@@ -21,9 +21,11 @@ model User {
 
   shareToken String? @unique @default(cuid())
 
-  accounts     Account[]
-  sessions     Session[]
-  transactions Transaction[]
+  accounts      Account[]
+  sessions      Session[]
+  transactions  Transaction[]
+  dietEntries   DietEntry[]
+  weightEntries WeightEntry[]
 }
 
 model Account {
@@ -99,6 +101,69 @@ model Transaction {
 
   // Prevent importing the same external record twice. Multiple NULLs are
   // allowed by Postgres, so manual entries are unaffected.
+  @@unique([userId, source, externalId])
+  @@index([userId, date])
+}
+
+// ── Health ───────────────────────────────────────────────────────────────────
+
+// Where a health record originated. MANUAL is the default; CSV is the Google
+// Sheets import path; OPEN_FOOD_FACTS marks rows prefilled from a food search
+// or barcode scan.
+enum HealthSource {
+  MANUAL
+  CSV
+  OPEN_FOOD_FACTS
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+// A logged food. Supports two modes: a single food item (name + quantity +
+// per-serving macros, optionally from a barcode/search) OR a daily total
+// (isDailyTotal=true, mealType/quantity null) for a whole-day summary row.
+model DietEntry {
+  id           String        @id @default(cuid())
+  userId       String
+  name         String
+  date         DateTime
+  mealType     MealType?
+  isDailyTotal Boolean       @default(false)
+  quantityG    Decimal?      @db.Decimal(10, 2)
+  calories     Decimal       @db.Decimal(10, 2)
+  protein      Decimal       @db.Decimal(10, 2)
+  carbs        Decimal       @db.Decimal(10, 2)
+  fat          Decimal       @db.Decimal(10, 2)
+  barcode      String?
+  source       HealthSource  @default(MANUAL)
+  externalId   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, source, externalId])
+  @@index([userId, date])
+}
+
+// A bodyweight measurement, for weight-management trend analysis.
+model WeightEntry {
+  id         String       @id @default(cuid())
+  userId     String
+  date       DateTime
+  weightKg   Decimal      @db.Decimal(6, 2)
+  note       String?
+  source     HealthSource @default(MANUAL)
+  externalId String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, source, externalId])
   @@index([userId, date])
 }

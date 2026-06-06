@@ -1,21 +1,25 @@
 # Life Tracker — Next Steps
 
-_Last updated: 2026-06-04. Finance feature only (health/travel not started)._
+_Last updated: 2026-06-06. Finance complete; Health (Diet + Weight) scaffolded; Exercise + Travel not started._
 
 ## Where we are
 
-Finance is a solid vertical slice:
+**Finance** — solid vertical slice: owner-scoped CRUD, CSV import (long & wide layouts, dedupe, timezone-safe), Dashboard/Manage split, shared `<TransactionFilters>` bar (LLM-ready `TransactionFilter`), recruiter view `/shared/[shareToken]` with charts, confirm + optimistic delete.
 
-- **CRUD** on transactions (create / edit-via-dialog / delete), owner-scoped + tested.
-- **CSV import** — auto-detects long & wide/matrix Google-Sheets layouts, dedupes on re-import, timezone-safe (UTC midnight).
-- **Dashboard / Manage split** (`/finance`, `/finance/manage`).
-- **Filtering & search** — shared `<TransactionFilters>` bar on both surfaces: text search, type chips, category select, date presets (This month / Last 3 months / This year) + custom range. Driven by a pure, **LLM-ready** `TransactionFilter` object in `filters.ts`.
-- **Recruiter view** (`/shared/[shareToken]`) — read-only, now with the same Recharts visuals (bar + pie).
-- **Delete polish** — confirm dialog + optimistic delete with rollback.
+**Health** (new, 2026-06-06) — Diet + Weight, mirroring finance:
+- **Diet** (`/health/diet`): supports both per-item foods and whole-day totals; owner-scoped CRUD, CSV import w/ dedupe, search + confirm/optimistic delete, dashboard (calories/day bar + macro-split pie).
+- **Weight** (`/health/weight`): CRUD + CSV, trend line + net-change / avg-per-week stats.
+- **Open Food Facts** (free, no key): `FoodSearch` (debounced text search) and `BarcodeScanner` (`@zxing/browser`, camera) both prefill the diet form with gram-scaled macros. Pure mappers in `diet/openfoodfacts.ts` are unit-tested; fetchers are owner-guarded server actions.
+- Shared date helpers lifted to `src/features/shared/dates.ts`.
 
-**69 tests passing, build + lint clean** (one pre-existing unrelated lint warning in `transaction-schema.test.ts`).
+**100 tests passing, build + lint clean** (one pre-existing unrelated warning in `transaction-schema.test.ts`).
+
+## Manual verification still worth doing
+Camera/network bits weren't auto-tested: run `npm run dev` and confirm food search prefills macros, barcode scan resolves via Open Food Facts, a daily-total entry and a weight entry save, and a diet CSV re-import skips duplicates. (Camera needs HTTPS or localhost.)
 
 ## Pick up next (rough priority)
+
+0. **Health polish / follow-ons**: confirm the diet CSV columns against your real spreadsheet; consider a Health overview that correlates intake vs weight (a natural first **LLM** insight); auto-rescale diet-form macros when grams change after a pick; optional USDA secondary source for generic foods; build the **Exercise** section.
 
 1. **Optimistic add/edit** — the delete path is optimistic; the form (`transaction-form.tsx`) still just invalidates on success (good pending/error UX already). Make create/edit patch the `["transactions"]` cache optimistically (temp id for create, patch-by-id for edit) with rollback. Finishes the "optimistic on add/edit/delete" goal.
 
