@@ -17,3 +17,20 @@ export type FoodItemDTO = {
   satFat: number | null;
   source: string;
 };
+
+// Partial values used to seed the manual add form (from an unmatched barcode,
+// or an OFF hit that lacked nutrition).
+export type FoodItemPrefill = {
+  name?: string;
+  brand?: string;
+  category?: string;
+  barcode?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  satFat?: number;
+};

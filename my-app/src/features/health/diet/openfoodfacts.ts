@@ -64,6 +64,15 @@ const numOrUndefined = (v: unknown) => {
   return Number.isFinite(n) ? n : undefined;
 };
 
+// Calories per 100g. Prefers kcal; falls back to kJ (OFF often only stores
+// energy in kJ) converted at 4.184 kJ per kcal.
+function caloriesPer100g(n: OffNutriments): number {
+  const kcal = numOrUndefined(n["energy-kcal_100g"]);
+  if (kcal !== undefined) return kcal;
+  const kj = numOrUndefined(n["energy-kj_100g"]) ?? numOrUndefined(n["energy_100g"]);
+  return kj !== undefined ? Math.round(kj / 4.184) : 0;
+}
+
 // Maps a raw Open Food Facts product to a FoodHit, or null if it has no name
 // (OFF data is crowd-sourced and frequently incomplete).
 export function toFoodHit(product: OffProduct): FoodHit | null {
@@ -77,7 +86,7 @@ export function toFoodHit(product: OffProduct): FoodHit | null {
     brand,
     barcode: (product.code ?? "").trim(),
     per100g: {
-      calories: numOrZero(n["energy-kcal_100g"]),
+      calories: caloriesPer100g(n),
       protein: numOrZero(n["proteins_100g"]),
       carbs: numOrZero(n["carbohydrates_100g"]),
       fat: numOrZero(n["fat_100g"]),
@@ -115,4 +124,12 @@ export function parseProductResult(json: unknown): FoodHit | null {
   const data = json as { status?: number; product?: OffProduct };
   if (!data || data.status === 0 || !data.product) return null;
   return toFoodHit(data.product);
+}
+
+// True when a hit carries at least one non-zero core macro. Many OFF entries
+// have a name/brand/photo but no nutrition filled in — those should be captured
+// manually rather than saved as a 0-macro item.
+export function hasUsableNutrition(hit: FoodHit): boolean {
+  const p = hit.per100g;
+  return p.calories > 0 || p.protein > 0 || p.carbs > 0 || p.fat > 0;
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { foodItemSchema } from "./food-item-schema";
-import { foodItemFieldsFromHit } from "./food-item-serialize";
+import { foodItemFieldsFromHit, prefillFromHit } from "./food-item-serialize";
 import type { FoodHit } from "./openfoodfacts";
 
 describe("foodItemSchema", () => {
@@ -59,5 +59,31 @@ describe("foodItemFieldsFromHit", () => {
       micros: {},
     };
     expect(foodItemFieldsFromHit(hit).barcode).toBeNull();
+  });
+});
+
+describe("prefillFromHit", () => {
+  it("carries name/brand/barcode + positive nutrients, omitting zeros", () => {
+    const hit: FoodHit = {
+      name: "Smoked salmon",
+      brand: "Ocean Blue",
+      barcode: "9400000000000",
+      per100g: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      micros: { sodium: 1.2 },
+    };
+
+    expect(prefillFromHit(hit)).toEqual({
+      name: "Smoked salmon",
+      brand: "Ocean Blue",
+      barcode: "9400000000000",
+      calories: undefined,
+      protein: undefined,
+      carbs: undefined,
+      fat: undefined,
+      fiber: undefined,
+      sugar: undefined,
+      sodium: 1.2,
+      satFat: undefined,
+    });
   });
 });

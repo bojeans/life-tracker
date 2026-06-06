@@ -1,4 +1,4 @@
-import type { FoodItemDTO } from "./food-item-types";
+import type { FoodItemDTO, FoodItemPrefill } from "./food-item-types";
 import type { FoodHit } from "./openfoodfacts";
 
 export type FoodItemRow = {
@@ -56,5 +56,25 @@ export function foodItemFieldsFromHit(hit: FoodHit) {
     sugar: hit.micros.sugar ?? null,
     sodium: hit.micros.sodium ?? null,
     satFat: hit.micros.satFat ?? null,
+  };
+}
+
+// Seeds the manual add form from an OFF hit (carrying over whatever it had:
+// name/brand/barcode and any partial nutrition). Zero macros are omitted so the
+// fields render blank, prompting the user to fill them in.
+export function prefillFromHit(hit: FoodHit): FoodItemPrefill {
+  const pos = (n: number | undefined) => (n && n > 0 ? n : undefined);
+  return {
+    name: hit.name,
+    brand: hit.brand,
+    barcode: hit.barcode || undefined,
+    calories: pos(hit.per100g.calories),
+    protein: pos(hit.per100g.protein),
+    carbs: pos(hit.per100g.carbs),
+    fat: pos(hit.per100g.fat),
+    fiber: pos(hit.micros.fiber),
+    sugar: pos(hit.micros.sugar),
+    sodium: pos(hit.micros.sodium),
+    satFat: pos(hit.micros.satFat),
   };
 }

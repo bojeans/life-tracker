@@ -6,6 +6,7 @@ import {
   scaleMacros,
   parseSearchResults,
   parseProductResult,
+  hasUsableNutrition,
 } from "./openfoodfacts";
 
 const sampleProduct = {
@@ -61,6 +62,34 @@ describe("toFoodHit", () => {
       sodium: undefined,
       satFat: undefined,
     });
+  });
+
+  it("falls back to kJ for calories when kcal is absent", () => {
+    const hit = toFoodHit({
+      product_name: "Oats",
+      nutriments: { "energy-kj_100g": 1500, proteins_100g: 13 },
+    });
+    expect(hit?.per100g.calories).toBe(359); // round(1500 / 4.184)
+  });
+});
+
+describe("hasUsableNutrition", () => {
+  const base = {
+    name: "X",
+    barcode: "1",
+    micros: {},
+  };
+
+  it("is true when any core macro is non-zero", () => {
+    expect(
+      hasUsableNutrition({ ...base, per100g: { calories: 0, protein: 9, carbs: 0, fat: 0 } }),
+    ).toBe(true);
+  });
+
+  it("is false when all core macros are zero (no nutrition on OFF)", () => {
+    expect(
+      hasUsableNutrition({ ...base, per100g: { calories: 0, protein: 0, carbs: 0, fat: 0 } }),
+    ).toBe(false);
   });
 });
 

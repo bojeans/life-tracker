@@ -5,7 +5,19 @@ import {
   BrowserMultiFormatReader,
   type IScannerControls,
 } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { ScanLine } from "lucide-react";
+
+// Restrict decoding to retail product barcodes. Without this, ZXing also reads
+// QR codes — so a marketing QR on the packaging would decode to a URL instead
+// of the product's EAN/UPC.
+const PRODUCT_FORMATS = [
+  BarcodeFormat.EAN_13,
+  BarcodeFormat.EAN_8,
+  BarcodeFormat.UPC_A,
+  BarcodeFormat.UPC_E,
+];
+const HINTS = new Map([[DecodeHintType.POSSIBLE_FORMATS, PRODUCT_FORMATS]]);
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,7 +42,7 @@ export function BarcodeScanner({
   useEffect(() => {
     if (!open) return;
     let active = true;
-    const reader = new BrowserMultiFormatReader();
+    const reader = new BrowserMultiFormatReader(HINTS);
 
     const stop = () => {
       controlsRef.current?.stop();

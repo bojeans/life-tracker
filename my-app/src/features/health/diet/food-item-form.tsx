@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { foodItemSchema } from "./food-item-schema";
 import { createFoodItem, updateFoodItem } from "./food-item-actions";
-import type { FoodItemDTO } from "./food-item-types";
+import type { FoodItemDTO, FoodItemPrefill } from "./food-item-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,22 +14,24 @@ import { Label } from "@/components/ui/label";
 type FormInput = z.input<typeof foodItemSchema>;
 type FormOutput = z.output<typeof foodItemSchema>;
 
-const blank = (): FormInput =>
-  ({
-    name: "",
-    brand: "",
-    category: "",
-    barcode: "",
+function blank(prefill?: FoodItemPrefill): FormInput {
+  const v = (n?: number) => (n ?? "") as unknown as number;
+  return {
+    name: prefill?.name ?? "",
+    brand: prefill?.brand ?? "",
+    category: prefill?.category ?? "",
+    barcode: prefill?.barcode ?? "",
     servingSizeG: "",
-    calories: "",
-    protein: "",
-    carbs: "",
-    fat: "",
-    fiber: "",
-    sugar: "",
-    sodium: "",
-    satFat: "",
-  }) as unknown as FormInput;
+    calories: v(prefill?.calories),
+    protein: v(prefill?.protein),
+    carbs: v(prefill?.carbs),
+    fat: v(prefill?.fat),
+    fiber: v(prefill?.fiber),
+    sugar: v(prefill?.sugar),
+    sodium: v(prefill?.sodium),
+    satFat: v(prefill?.satFat),
+  } as unknown as FormInput;
+}
 
 function defaultsFrom(item: FoodItemDTO): FormInput {
   const s = (v: number | null) => (v ?? "") as unknown as number;
@@ -52,9 +54,11 @@ function defaultsFrom(item: FoodItemDTO): FormInput {
 
 export function FoodItemForm({
   item,
+  prefill,
   onSuccess,
 }: {
   item?: FoodItemDTO;
+  prefill?: FoodItemPrefill;
   onSuccess?: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -67,7 +71,7 @@ export function FoodItemForm({
     formState: { errors },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(foodItemSchema),
-    defaultValues: item ? defaultsFrom(item) : blank(),
+    defaultValues: item ? defaultsFrom(item) : blank(prefill),
   });
 
   const mutation = useMutation({
@@ -97,6 +101,24 @@ export function FoodItemForm({
       <p className="text-muted-foreground text-sm">
         Nutrients are <strong>per 100g</strong>.
       </p>
+
+      {!isEdit && prefill && (
+        <p className="rounded-md border border-dashed p-2 text-sm">
+          {prefill.name ? (
+            <>
+              Open Food Facts didn&apos;t have full nutrition for{" "}
+              <strong>{prefill.name}</strong>.
+            </>
+          ) : prefill.barcode ? (
+            <>
+              Barcode <code>{prefill.barcode}</code> wasn&apos;t in Open Food
+              Facts.
+            </>
+          ) : null}{" "}
+          Add the missing values once and it&apos;ll be saved to your pantry —
+          future scans will find it instantly.
+        </p>
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="fi-name">Name</Label>
