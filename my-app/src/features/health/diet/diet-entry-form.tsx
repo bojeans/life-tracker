@@ -6,10 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { dietEntrySchema, MEAL_TYPES } from "./diet-schema";
-import { createDietEntry, updateDietEntry, lookupBarcode } from "./actions";
+import { createDietEntry, updateDietEntry } from "./actions";
 import type { DietEntryDTO } from "./types";
-import { FoodSearch, pickedFromHit, type PickedFood } from "./food-search";
-import { BarcodeScanner } from "./barcode-scanner";
+import { CatalogPicker, type CatalogPick } from "./catalog-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +30,7 @@ function blankDefaults(): FormInput {
     carbs: "" as unknown as FormInput["carbs"],
     fat: "" as unknown as FormInput["fat"],
     barcode: "",
+    foodItemId: "",
   };
 }
 
@@ -46,6 +46,7 @@ function defaultsFrom(e: DietEntryDTO): FormInput {
     carbs: e.carbs as unknown as FormInput["carbs"],
     fat: e.fat as unknown as FormInput["fat"],
     barcode: e.barcode ?? "",
+    foodItemId: e.foodItemId ?? "",
   };
 }
 
@@ -70,34 +71,21 @@ export function DietEntryForm({
     defaultValues: entry ? defaultsFrom(entry) : blankDefaults(),
   });
 
-  // Prefill the form from a food search or barcode scan (macros already scaled).
-  // Memoised so the barcode scanner's camera isn't restarted on every render.
+  // Autopopulate the form from a catalog pick (macros already scaled to grams).
   const applyPicked = useCallback(
-    (f: PickedFood) => {
+    (p: CatalogPick) => {
       const set = (k: keyof FormInput, v: unknown) =>
         setValue(k, v as FormInput[typeof k], { shouldValidate: true });
-      set("name", f.name);
-      set("barcode", f.barcode);
-      set("quantityG", f.grams);
-      set("calories", f.calories);
-      set("protein", f.protein);
-      set("carbs", f.carbs);
-      set("fat", f.fat);
+      set("name", p.name);
+      set("barcode", p.barcode ?? "");
+      set("foodItemId", p.foodItemId);
+      set("quantityG", p.grams);
+      set("calories", p.calories);
+      set("protein", p.protein);
+      set("carbs", p.carbs);
+      set("fat", p.fat);
     },
     [setValue],
-  );
-
-  // A scanned barcode → look up macros; fall back to just recording the code.
-  const handleScan = useCallback(
-    async (code: string) => {
-      const hit = await lookupBarcode(code);
-      if (hit) {
-        applyPicked(pickedFromHit(hit, 100));
-      } else {
-        setValue("barcode", code, { shouldValidate: true });
-      }
-    },
-    [applyPicked, setValue],
   );
 
   const mutation = useMutation({
@@ -125,14 +113,12 @@ export function DietEntryForm({
       aria-label={isEdit ? "Edit diet entry" : "Add diet entry"}
     >
       <input type="hidden" {...register("barcode")} />
+      <input type="hidden" {...register("foodItemId")} />
 
       {!isEdit && (
         <div className="space-y-2 rounded-lg border border-dashed p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium">Quick add</p>
-            <BarcodeScanner onDetected={handleScan} />
-          </div>
-          <FoodSearch onPick={applyPicked} />
+          <p className="text-sm font-medium">Pick from your foods</p>
+          <CatalogPicker onPick={applyPicked} />
         </div>
       )}
 

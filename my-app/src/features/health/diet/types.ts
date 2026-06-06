@@ -14,5 +14,6 @@ export type DietEntryDTO = {
   carbs: number;
   fat: number;
   barcode: string | null;
+  foodItemId: string | null;
   source: string;
 };

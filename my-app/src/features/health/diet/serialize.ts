@@ -13,6 +13,7 @@ export type DietEntryRow = {
   carbs: unknown;
   fat: unknown;
   barcode: string | null;
+  foodItemId: string | null;
   source: string;
 };
 
@@ -30,6 +31,7 @@ export function toDietEntryDTO(row: DietEntryRow): DietEntryDTO {
     carbs: Number(row.carbs),
     fat: Number(row.fat),
     barcode: row.barcode,
+    foodItemId: row.foodItemId,
     source: row.source,
   };
 }

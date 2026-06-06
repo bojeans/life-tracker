@@ -32,6 +32,11 @@ export const dietEntrySchema = z.object({
     emptyToUndefined,
     z.string().trim().max(64).optional(),
   ),
+  // Optional link to the catalog item this entry was logged from.
+  foodItemId: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().max(40).optional(),
+  ),
 });
 
 export type DietEntryInput = z.infer<typeof dietEntrySchema>;

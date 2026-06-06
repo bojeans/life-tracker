@@ -16,6 +16,7 @@ function entry(overrides: Partial<DietEntryDTO> = {}): DietEntryDTO {
     carbs: 20,
     fat: 5,
     barcode: null,
+    foodItemId: null,
     source: "MANUAL",
     ...overrides,
   };

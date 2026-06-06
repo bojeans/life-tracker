@@ -51,6 +51,7 @@ export async function createDietEntry(input: unknown): Promise<DietEntryDTO> {
       carbs: data.carbs,
       fat: data.fat,
       barcode: data.barcode ?? null,
+      foodItemId: data.foodItemId ?? null,
     },
   });
 
@@ -125,6 +126,7 @@ export async function updateDietEntry(
       carbs: data.carbs,
       fat: data.fat,
       barcode: data.barcode ?? null,
+      foodItemId: data.foodItemId ?? null,
     },
   });
 

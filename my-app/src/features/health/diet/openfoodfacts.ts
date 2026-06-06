@@ -9,14 +9,24 @@ export type Per100g = {
   fat: number;
 };
 
+// Common micronutrients, per 100g. Optional — Open Food Facts coverage varies.
+export type Micros = {
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  satFat?: number;
+};
+
 export type FoodHit = {
   name: string;
+  brand?: string;
   barcode: string;
   per100g: Per100g;
+  micros: Micros;
 };
 
 const BASE = "https://world.openfoodfacts.org";
-const FIELDS = "code,product_name,nutriments";
+const FIELDS = "code,product_name,brands,nutriments";
 
 export function searchUrl(query: string): string {
   const params = new URLSearchParams({
@@ -37,6 +47,7 @@ type OffNutriments = Record<string, unknown>;
 type OffProduct = {
   code?: string;
   product_name?: string;
+  brands?: string;
   nutriments?: OffNutriments;
 };
 
@@ -45,20 +56,37 @@ const numOrZero = (v: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// For optional micros: undefined (not 0) when the value is absent, so "unknown"
+// is distinguishable from a genuine zero.
+const numOrUndefined = (v: unknown) => {
+  if (v === undefined || v === null || v === "") return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+};
+
 // Maps a raw Open Food Facts product to a FoodHit, or null if it has no name
 // (OFF data is crowd-sourced and frequently incomplete).
 export function toFoodHit(product: OffProduct): FoodHit | null {
   const name = (product.product_name ?? "").trim();
   if (!name) return null;
   const n = product.nutriments ?? {};
+  // `brands` is a comma-separated list; take the first.
+  const brand = (product.brands ?? "").split(",")[0].trim() || undefined;
   return {
     name,
+    brand,
     barcode: (product.code ?? "").trim(),
     per100g: {
       calories: numOrZero(n["energy-kcal_100g"]),
       protein: numOrZero(n["proteins_100g"]),
       carbs: numOrZero(n["carbohydrates_100g"]),
       fat: numOrZero(n["fat_100g"]),
+    },
+    micros: {
+      fiber: numOrUndefined(n["fiber_100g"]),
+      sugar: numOrUndefined(n["sugars_100g"]),
+      sodium: numOrUndefined(n["sodium_100g"]),
+      satFat: numOrUndefined(n["saturated-fat_100g"]),
     },
   };
 }

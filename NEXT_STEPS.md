@@ -7,15 +7,15 @@ _Last updated: 2026-06-06. Finance complete; Health (Diet + Weight) scaffolded; 
 **Finance** — solid vertical slice: owner-scoped CRUD, CSV import (long & wide layouts, dedupe, timezone-safe), Dashboard/Manage split, shared `<TransactionFilters>` bar (LLM-ready `TransactionFilter`), recruiter view `/shared/[shareToken]` with charts, confirm + optimistic delete.
 
 **Health** (new, 2026-06-06) — Diet + Weight, mirroring finance:
-- **Diet** (`/health/diet`): supports both per-item foods and whole-day totals; owner-scoped CRUD, CSV import w/ dedupe, search + confirm/optimistic delete, dashboard (calories/day bar + macro-split pie).
+- **Diet** (`/health/diet`): tabs Dashboard | Manage | Pantry. Supports both per-item foods and whole-day totals; owner-scoped CRUD, CSV import w/ dedupe, search + confirm/optimistic delete, dashboard (calories/day bar + macro-split pie).
+- **Food catalog / "pantry"** — the core of the barcode/search request: a reusable per-user `FoodItem` catalog (per-100g macros + common micros). **Pantry** tab builds it (Open Food Facts search + `@zxing/browser` barcode scan + manual add; deduped by barcode). **Logging** uses `CatalogPicker` over the *local* catalog → enter grams → macros autopopulate; entries store `foodItemId` + a macro snapshot (editing a catalog item won't rewrite history).
 - **Weight** (`/health/weight`): CRUD + CSV, trend line + net-change / avg-per-week stats.
-- **Open Food Facts** (free, no key): `FoodSearch` (debounced text search) and `BarcodeScanner` (`@zxing/browser`, camera) both prefill the diet form with gram-scaled macros. Pure mappers in `diet/openfoodfacts.ts` are unit-tested; fetchers are owner-guarded server actions.
-- Shared date helpers lifted to `src/features/shared/dates.ts`.
+- Pure mappers (`diet/openfoodfacts.ts`, `food-item-serialize.ts`) unit-tested; OFF fetchers are owner-guarded server actions. Shared date helpers in `src/features/shared/dates.ts`.
 
-**100 tests passing, build + lint clean** (one pre-existing unrelated warning in `transaction-schema.test.ts`).
+**104 tests passing, build + lint clean** (one pre-existing unrelated warning in `transaction-schema.test.ts`).
 
 ## Manual verification still worth doing
-Camera/network bits weren't auto-tested: run `npm run dev` and confirm food search prefills macros, barcode scan resolves via Open Food Facts, a daily-total entry and a weight entry save, and a diet CSV re-import skips duplicates. (Camera needs HTTPS or localhost.)
+Camera/network bits weren't auto-tested: run `npm run dev` and confirm — in **Pantry**: a barcode scan + an OFF search both save items to the catalog; in **Manage**: `CatalogPicker` finds a saved item, scales by grams, and autopopulates macros; a daily-total entry and a weight entry save; a diet CSV re-import skips duplicates. (Camera needs HTTPS or localhost; restart `npm run dev` so Prisma picks up the new `FoodItem` model.)
 
 ## Pick up next (rough priority)
 

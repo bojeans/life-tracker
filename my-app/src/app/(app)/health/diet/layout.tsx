@@ -3,6 +3,7 @@ import { SubNav } from "@/features/health/sub-nav";
 const tabs = [
   { href: "/health/diet", label: "Dashboard", exact: true },
   { href: "/health/diet/manage", label: "Manage" },
+  { href: "/health/diet/pantry", label: "Pantry" },
 ];
 
 export default function DietLayout({

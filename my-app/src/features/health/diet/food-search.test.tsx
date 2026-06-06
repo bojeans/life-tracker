@@ -12,8 +12,10 @@ vi.mock("./actions", () => ({
 
 const hit: FoodHit = {
   name: "Greek yoghurt",
+  brand: "Chobani",
   barcode: "123",
-  per100g: { calories: 100, protein: 10, carbs: 5, fat: 2 },
+  per100g: { calories: 97, protein: 9, carbs: 4, fat: 5 },
+  micros: { sugar: 4 },
 };
 
 beforeEach(() => {
@@ -22,41 +24,25 @@ beforeEach(() => {
 });
 
 describe("FoodSearch", () => {
-  it("searches, then emits a gram-scaled pick", async () => {
-    const onPick = vi.fn();
+  it("searches (debounced) and emits the selected raw hit", async () => {
+    const onSelect = vi.fn();
     const user = userEvent.setup();
-    render(<FoodSearch onPick={onPick} />);
+    render(<FoodSearch onSelect={onSelect} />);
 
     await user.type(
       screen.getByRole("searchbox", { name: /open food facts/i }),
       "yog",
     );
-
-    // Debounced result appears.
     await user.click(await screen.findByRole("button", { name: /greek yoghurt/i }));
 
-    const grams = screen.getByLabelText(/grams/i);
-    await user.clear(grams);
-    await user.type(grams, "200");
-    await user.click(screen.getByRole("button", { name: /use this/i }));
-
-    expect(onPick).toHaveBeenCalledWith({
-      name: "Greek yoghurt",
-      barcode: "123",
-      grams: 200,
-      calories: 200,
-      protein: 20,
-      carbs: 10,
-      fat: 4,
-    });
+    expect(onSelect).toHaveBeenCalledWith(hit);
   });
 
   it("does not query for very short input", async () => {
     const user = userEvent.setup();
-    render(<FoodSearch onPick={vi.fn()} />);
+    render(<FoodSearch onSelect={vi.fn()} />);
 
     await user.type(screen.getByRole("searchbox", { name: /open food facts/i }), "y");
-    // Give any debounce a chance to (not) fire.
     await new Promise((r) => setTimeout(r, 400));
 
     expect(searchFoods).not.toHaveBeenCalled();

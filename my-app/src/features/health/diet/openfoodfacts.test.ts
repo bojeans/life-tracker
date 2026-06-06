@@ -11,11 +11,15 @@ import {
 const sampleProduct = {
   code: "3017620422003",
   product_name: "Nutella",
+  brands: "Ferrero, Nutella",
   nutriments: {
     "energy-kcal_100g": 539,
     proteins_100g: 6.3,
     carbohydrates_100g: 57.5,
     fat_100g: 30.9,
+    sugars_100g: 56.3,
+    "saturated-fat_100g": 10.6,
+    fiber_100g: 0,
   },
 };
 
@@ -23,7 +27,7 @@ describe("url builders", () => {
   it("builds an encoded search URL with fields", () => {
     const u = searchUrl("greek yoghurt");
     expect(u).toContain("search_terms=greek+yoghurt");
-    expect(u).toContain("fields=code%2Cproduct_name%2Cnutriments");
+    expect(u).toContain("fields=code%2Cproduct_name%2Cbrands%2Cnutriments");
   });
 
   it("builds a product URL for a barcode", () => {
@@ -34,11 +38,13 @@ describe("url builders", () => {
 });
 
 describe("toFoodHit", () => {
-  it("maps OFF nutriments to per-100g macros", () => {
+  it("maps OFF nutriments to per-100g macros + micros + brand", () => {
     expect(toFoodHit(sampleProduct)).toEqual({
       name: "Nutella",
+      brand: "Ferrero", // first of the comma-separated brands
       barcode: "3017620422003",
       per100g: { calories: 539, protein: 6.3, carbs: 57.5, fat: 30.9 },
+      micros: { sugar: 56.3, satFat: 10.6, fiber: 0, sodium: undefined },
     });
   });
 
@@ -46,9 +52,15 @@ describe("toFoodHit", () => {
     expect(toFoodHit({ code: "123", nutriments: {} })).toBeNull();
   });
 
-  it("defaults missing nutriments to 0", () => {
+  it("defaults missing macros to 0 and leaves absent micros undefined", () => {
     const hit = toFoodHit({ product_name: "Mystery", nutriments: {} });
     expect(hit?.per100g).toEqual({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+    expect(hit?.micros).toEqual({
+      fiber: undefined,
+      sugar: undefined,
+      sodium: undefined,
+      satFat: undefined,
+    });
   });
 });
 
