@@ -10,11 +10,11 @@ const valid = {
 };
 
 describe("transactionSchema", () => {
-  it("parses a valid expense and defaults currency to AUD", () => {
+  it("parses a valid expense and defaults currency to NZD", () => {
     const result = transactionSchema.parse(valid);
     expect(result.amount).toBe(42.5);
     expect(result.type).toBe("EXPENSE");
-    expect(result.currency).toBe("AUD");
+    expect(result.currency).toBe("NZD");
     expect(result.date).toBeInstanceOf(Date);
   });
 

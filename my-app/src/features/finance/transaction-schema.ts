@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BASE_CURRENCY } from "./currency";
 
 export const TRANSACTION_TYPES = ["INCOME", "EXPENSE"] as const;
 
@@ -20,7 +21,7 @@ export const transactionSchema = z.object({
     .max(200, { error: "Description is too long" })
     .optional(),
   date: z.coerce.date({ error: "A valid date is required" }),
-  currency: z.string().trim().length(3).default("AUD"),
+  currency: z.string().trim().length(3).default(BASE_CURRENCY),
 });
 
 export type TransactionInput = z.infer<typeof transactionSchema>;

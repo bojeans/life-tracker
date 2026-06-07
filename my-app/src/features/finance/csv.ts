@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { transactionSchema, type TransactionInput } from "./transaction-schema";
+import { BASE_CURRENCY } from "./currency";
 import { parseFlexibleDate } from "@/features/shared/dates";
 
 export type CsvParseResult = {
@@ -101,7 +102,7 @@ export function parseTransactionsCsv(csvText: string): CsvParseResult {
       category: (raw.category ?? "").trim() || "Uncategorized",
       description: (raw.description ?? "").trim() || undefined,
       date: (raw.date ?? "").trim(),
-      currency: "AUD",
+      currency: BASE_CURRENCY,
     };
 
     const result = transactionSchema.safeParse(candidate);
@@ -197,7 +198,7 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
         category: col.category,
         description: description || undefined,
         date,
-        currency: "AUD",
+        currency: BASE_CURRENCY,
       });
 
       if (result.success) {

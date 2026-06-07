@@ -23,7 +23,7 @@ describe("parseTransactionsCsv", () => {
       amount: 42.5,
       category: "Groceries",
       description: "Weekly shop",
-      currency: "AUD",
+      currency: "NZD",
     });
     expect(valid[1].description).toBeUndefined();
   });
@@ -159,7 +159,7 @@ describe("externalIdFor", () => {
       category: "Groceries",
       description: "Shop",
       date: new Date("2026-06-01T00:00:00.000Z"),
-      currency: "AUD",
+      currency: "NZD",
     };
     const b = { ...a, amount: 43 };
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { transactionSchema, TRANSACTION_TYPES } from "./transaction-schema";
 import { createTransaction, updateTransaction } from "./actions";
 import type { TransactionDTO } from "./types";
+import { BASE_CURRENCY, SUPPORTED_CURRENCIES } from "./currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +24,7 @@ function blankDefaults(): FormInput {
     category: "",
     description: "",
     date: today(),
-    currency: "AUD",
+    currency: BASE_CURRENCY,
   };
 }
 
@@ -82,7 +83,7 @@ export function TransactionForm({
       className="space-y-4 rounded-lg border p-4"
       aria-label={isEdit ? "Edit transaction" : "Add transaction"}
     >
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="space-y-1.5">
           <Label htmlFor="type">Type</Label>
           <select
@@ -110,6 +111,21 @@ export function TransactionForm({
           {errors.amount && (
             <p className="text-destructive text-sm">{errors.amount.message}</p>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="currency">Currency</Label>
+          <select
+            id="currency"
+            {...register("currency")}
+            className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
+          >
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

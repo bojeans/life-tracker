@@ -4,9 +4,15 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTransactions } from "./actions";
 import { summarizeTransactions } from "./summary";
-import { formatCurrency } from "./format";
 import { FinanceCharts } from "./finance-charts";
 import { TransactionFilters } from "./transaction-filters";
+import {
+  BASE_CURRENCY,
+  SUPPORTED_CURRENCIES,
+  convertTransactions,
+  formatMoney,
+} from "./currency";
+import { getExchangeRates } from "./currency-actions";
 import {
   availableCategories,
   filterTransactions,
@@ -27,14 +33,29 @@ export function FinanceDashboardView({
   });
 
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
+  const [viewCurrency, setViewCurrency] = useState<string>(BASE_CURRENCY);
+
+  const { data: rates } = useQuery({
+    queryKey: ["fxRates"],
+    queryFn: () => getExchangeRates(),
+    staleTime: 60 * 60 * 1000,
+  });
+
+  // Convert every transaction into the chosen view currency before filtering /
+  // aggregating, so summary cards and charts are all in one currency.
+  const converted = useMemo(
+    () => convertTransactions(transactions, viewCurrency, rates),
+    [transactions, viewCurrency, rates],
+  );
+
   const categories = useMemo(
     () => availableCategories(transactions),
     [transactions],
   );
 
   const filtered = useMemo(
-    () => filterTransactions(transactions, filter),
-    [transactions, filter],
+    () => filterTransactions(converted, filter),
+    [converted, filter],
   );
 
   const summary = useMemo(() => summarizeTransactions(filtered), [filtered]);
@@ -51,24 +72,51 @@ export function FinanceDashboardView({
 
   return (
     <div className="space-y-6">
-      <TransactionFilters
-        value={filter}
-        onChange={setFilter}
-        categories={categories}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <TransactionFilters
+            value={filter}
+            onChange={setFilter}
+            categories={categories}
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">View in</span>
+          <select
+            aria-label="View currency"
+            value={viewCurrency}
+            onChange={(e) => setViewCurrency(e.target.value)}
+            className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
+          >
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {viewCurrency !== BASE_CURRENCY && (
+        <p className="text-muted-foreground text-xs">
+          Converted to {viewCurrency} at today&apos;s rates
+          {rates?.date ? ` (${rates.date})` : ""}. Original amounts are kept on
+          each entry.
+        </p>
+      )}
 
       {/* Summary cards */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <SummaryCard label="Income" value={formatCurrency(summary.totalIncome)} accent="text-green-600" />
-        <SummaryCard label="Expenses" value={formatCurrency(summary.totalExpense)} accent="text-destructive" />
+        <SummaryCard label="Income" value={formatMoney(summary.totalIncome, viewCurrency)} accent="text-green-600" />
+        <SummaryCard label="Expenses" value={formatMoney(summary.totalExpense, viewCurrency)} accent="text-destructive" />
         <SummaryCard
           label="Net"
-          value={formatCurrency(summary.net)}
+          value={formatMoney(summary.net, viewCurrency)}
           accent={summary.net >= 0 ? "text-green-600" : "text-destructive"}
         />
       </section>
 
-      <FinanceCharts transactions={filtered} />
+      <FinanceCharts transactions={filtered} currency={viewCurrency} />
 
       {/* Recent transactions (read-only) */}
       <section className="space-y-3">
@@ -99,7 +147,7 @@ export function FinanceDashboardView({
                   }
                 >
                   {t.type === "EXPENSE" ? "-" : "+"}
-                  {formatCurrency(t.amount)}
+                  {formatMoney(t.amount, viewCurrency)}
                 </span>
               </li>
             ))}

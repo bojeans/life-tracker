@@ -52,7 +52,7 @@ describe("TransactionForm", () => {
         type: "EXPENSE",
         amount: 25.5,
         category: "Coffee",
-        currency: "AUD",
+        currency: "NZD",
       }),
     );
   });

@@ -97,7 +97,7 @@ export async function seedDemoData(db: PrismaClient, userId: string) {
       userId,
       type: t.type,
       amount: t.amount,
-      currency: "AUD",
+      currency: "NZD",
       category: t.category,
       description: t.description ?? null,
       date: daysAgo(t.daysAgo),

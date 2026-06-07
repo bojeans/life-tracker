@@ -1,6 +1,13 @@
 import { notFound } from "next/navigation";
 import { getSharedFinance } from "@/features/finance/shared";
 import { FinanceCharts } from "@/features/finance/finance-charts";
+import { summarizeTransactions } from "@/features/finance/summary";
+import {
+  BASE_CURRENCY,
+  convertTransactions,
+  formatMoney,
+} from "@/features/finance/currency";
+import { getExchangeRates } from "@/features/finance/currency-actions";
 import { getSharedHealth } from "@/features/health/shared";
 import { SharedHealthCharts } from "@/features/health/shared-health-charts";
 import { LaunchDemoButton } from "@/features/demo/launch-demo-button";
@@ -10,30 +17,26 @@ interface Props {
   params: Promise<{ shareToken: string }>;
 }
 
-const aud = (n: number) =>
-  new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: "AUD",
-    maximumFractionDigits: 0,
-  }).format(n);
-
-const audCents = (n: number) =>
-  new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
-    n,
-  );
+const money = (n: number, whole = false) =>
+  formatMoney(n, BASE_CURRENCY, { whole });
 
 const kg = (n: number) => `${n > 0 ? "+" : ""}${n} kg`;
 
 export default async function SharedPage({ params }: Props) {
   const { shareToken } = await params;
-  const [finance, health] = await Promise.all([
+  const [finance, health, rates] = await Promise.all([
     getSharedFinance(shareToken),
     getSharedHealth(shareToken),
+    getExchangeRates(),
   ]);
 
   if (!finance) notFound();
 
-  const { ownerName, isDemo, summary, recent, all } = finance;
+  const { ownerName, isDemo } = finance;
+  // Normalise any mixed currencies to the base for a consistent public view.
+  const all = convertTransactions(finance.all, BASE_CURRENCY, rates);
+  const summary = summarizeTransactions(all);
+  const recent = all.slice(0, 8);
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-10 p-4 sm:p-8">
@@ -59,16 +62,18 @@ export default async function SharedPage({ params }: Props) {
         <h2 className="text-lg font-semibold">Finance</h2>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <SummaryCard label="Income" value={audCents(summary.totalIncome)} accent="text-green-600" />
-          <SummaryCard label="Expenses" value={audCents(summary.totalExpense)} accent="text-destructive" />
+          <SummaryCard label="Income" value={money(summary.totalIncome)} accent="text-green-600" />
+          <SummaryCard label="Expenses" value={money(summary.totalExpense)} accent="text-destructive" />
           <SummaryCard
             label="Net"
-            value={audCents(summary.net)}
+            value={money(summary.net)}
             accent={summary.net >= 0 ? "text-green-600" : "text-destructive"}
           />
         </div>
 
-        {all.length > 0 && <FinanceCharts transactions={all} />}
+        {all.length > 0 && (
+          <FinanceCharts transactions={all} currency={BASE_CURRENCY} />
+        )}
 
         <div className="space-y-3">
           <h3 className="font-semibold">Recent transactions</h3>
@@ -90,7 +95,7 @@ export default async function SharedPage({ params }: Props) {
                   }
                 >
                   {t.type === "EXPENSE" ? "-" : "+"}
-                  {aud(t.amount)}
+                  {money(t.amount, true)}
                 </span>
               </li>
             ))}

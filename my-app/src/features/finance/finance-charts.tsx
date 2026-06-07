@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import { monthlyTotals } from "./analytics";
 import { summarizeTransactions } from "./summary";
-import { formatCurrency } from "./format";
+import { BASE_CURRENCY, formatMoney } from "./currency";
 import type { TransactionDTO } from "./types";
 
 const CATEGORY_COLORS = [
@@ -29,13 +29,14 @@ const CATEGORY_COLORS = [
   "#64748b",
 ];
 
-const audWhole = (n: number) => formatCurrency(n, { whole: true });
-
 export function FinanceCharts({
   transactions,
+  currency = BASE_CURRENCY,
 }: {
   transactions: TransactionDTO[];
+  currency?: string;
 }) {
+  const money = (n: number) => formatMoney(n, currency, { whole: true });
   const monthly = useMemo(() => monthlyTotals(transactions), [transactions]);
   const byCategory = useMemo(
     () => summarizeTransactions(transactions).byCategory,
@@ -54,9 +55,9 @@ export function FinanceCharts({
               tickLine={false}
               axisLine={false}
               width={48}
-              tickFormatter={(v) => audWhole(Number(v))}
+              tickFormatter={(v) => money(Number(v))}
             />
-            <Tooltip formatter={(v) => audWhole(Number(v))} />
+            <Tooltip formatter={(v) => money(Number(v))} />
             <Legend />
             <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
             <Bar dataKey="expense" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -86,7 +87,7 @@ export function FinanceCharts({
                   <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => audWhole(Number(v))} />
+              <Tooltip formatter={(v) => money(Number(v))} />
             </PieChart>
           </ResponsiveContainer>
         )}

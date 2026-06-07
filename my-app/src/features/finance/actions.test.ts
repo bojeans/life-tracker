@@ -50,7 +50,7 @@ describe("createTransaction", () => {
       id: "txn-1",
       type: "EXPENSE",
       amount: 42.5,
-      currency: "AUD",
+      currency: "NZD",
       category: "Groceries",
       description: null,
       date: new Date("2026-06-01T00:00:00.000Z"),
@@ -63,7 +63,7 @@ describe("createTransaction", () => {
     const arg = create.mock.calls[0][0];
     expect(arg.data.userId).toBe("user-1");
     expect(arg.data.amount).toBe(42.5);
-    expect(arg.data.currency).toBe("AUD");
+    expect(arg.data.currency).toBe("NZD");
 
     // Returns a serializable DTO (number amount, ISO date) — no Decimal/Date objects
     expect(result.amount).toBe(42.5);
@@ -92,7 +92,7 @@ describe("getTransactions", () => {
         id: "txn-1",
         type: "EXPENSE",
         amount: 42.5, // stands in for a Prisma Decimal
-        currency: "AUD",
+        currency: "NZD",
         category: "Groceries",
         description: null,
         date: new Date("2026-06-01T00:00:00.000Z"),
@@ -111,7 +111,7 @@ describe("getTransactions", () => {
         id: "txn-1",
         type: "EXPENSE",
         amount: 42.5,
-        currency: "AUD",
+        currency: "NZD",
         category: "Groceries",
         description: null,
         date: "2026-06-01T00:00:00.000Z",
