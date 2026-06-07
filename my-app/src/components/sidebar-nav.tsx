@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wallet, HeartPulse, Plane, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { href: "/finance", label: "Finance", icon: Wallet },
@@ -38,6 +39,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           );
         })}
       </nav>
+      <div className="px-3 py-2">
+        <ThemeToggle />
+      </div>
       <Link
         href="/auth/signout"
         onClick={onNavigate}

@@ -4,6 +4,7 @@ import { FinanceCharts } from "@/features/finance/finance-charts";
 import { getSharedHealth } from "@/features/health/shared";
 import { SharedHealthCharts } from "@/features/health/shared-health-charts";
 import { LaunchDemoButton } from "@/features/demo/launch-demo-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface Props {
   params: Promise<{ shareToken: string }>;
@@ -37,10 +38,11 @@ export default async function SharedPage({ params }: Props) {
   return (
     <main className="mx-auto w-full max-w-3xl space-y-10 p-4 sm:p-8">
       <header className="space-y-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between gap-2">
           <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-medium">
             Read-only · Shared view
           </span>
+          <ThemeToggle />
         </div>
         <h1 className="text-2xl font-bold sm:text-3xl">
           {ownerName ?? "Portfolio"} — Overview
