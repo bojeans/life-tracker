@@ -53,7 +53,7 @@ describe("getSharedHealth", () => {
       exerciseEntries: [],
     });
 
-    const result = await getSharedHealth("demo-recruiter-view");
+    const result = await getSharedHealth("example-user");
 
     expect(result).not.toBeNull();
     expect(result!.hasData).toBe(true);
@@ -76,7 +76,7 @@ describe("getSharedHealth", () => {
       exerciseEntries: [],
     });
 
-    const result = await getSharedHealth("demo-recruiter-view");
+    const result = await getSharedHealth("example-user");
 
     expect(result!.baseline).toBeNull();
     expect(result!.balance).toHaveLength(0);

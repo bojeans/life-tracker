@@ -7,11 +7,11 @@ const db = new PrismaClient();
 async function main() {
   const demo = await db.user.upsert({
     where: { email: "demo@life-tracker.dev" },
-    update: { name: "Alex Demo", isDemo: true },
+    update: { name: "Alex Demo", shareToken: "example-user", isDemo: true },
     create: {
       email: "demo@life-tracker.dev",
       name: "Alex Demo",
-      shareToken: "demo-recruiter-view",
+      shareToken: "example-user",
       isDemo: true,
     },
   });

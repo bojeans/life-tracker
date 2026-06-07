@@ -46,7 +46,7 @@ describe("getSharedFinance", () => {
     );
     findUnique.mockResolvedValue({ name: "Alex Demo", transactions: rows });
 
-    const result = await getSharedFinance("demo-recruiter-view");
+    const result = await getSharedFinance("example-user");
 
     expect(result).not.toBeNull();
     expect(result!.ownerName).toBe("Alex Demo");
@@ -60,7 +60,7 @@ describe("getSharedFinance", () => {
   it("serializes Decimal/Date rows into plain DTOs", async () => {
     findUnique.mockResolvedValue({ name: "Alex Demo", transactions: [row()] });
 
-    const result = await getSharedFinance("demo-recruiter-view");
+    const result = await getSharedFinance("example-user");
 
     const [txn] = result!.all;
     expect(typeof txn.amount).toBe("number");

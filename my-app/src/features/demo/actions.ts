@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { DEMO_COOKIE } from "@/lib/demo-cookie";
 import { resolveActorUserId, isDemoActor } from "@/lib/actor";
 import { seedDemoData } from "@/lib/demo-data";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Start acting as a demo account: verify the token belongs to an isDemo user,
 // set the demo cookie, and drop into the real app.
@@ -47,6 +48,10 @@ export async function exitDemoMode() {
 export async function resetDemoData() {
   if (!(await isDemoActor())) throw new Error("Not in demo mode");
   const userId = await resolveActorUserId();
+  // Reset is heavy (wipes + reinserts ~40 rows); cap it tightly.
+  if (!rateLimit(`reset:${userId}`, 5, 60_000)) {
+    throw new Error("Please wait a moment before resetting again.");
+  }
   await seedDemoData(db, userId);
   revalidatePath("/finance");
   revalidatePath("/health");
