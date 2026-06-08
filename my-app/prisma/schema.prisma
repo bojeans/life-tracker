@@ -1,9 +1,10 @@
 generator client {
-  provider      = "prisma-client"
-  output        = "../src/generated/prisma"
-  // Vercel's runtime needs the rhel-openssl-3.0.x engine; don't rely on the
-  // build image's `native` target, which can differ from the function runtime.
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  // Use the WASM query compiler + a JS driver adapter (see src/lib/db.ts)
+  // instead of the native Rust query engine, so there's no platform-specific
+  // binary to bundle/locate in serverless functions (the rhel-openssl errors).
+  engineType = "client"
 }
 
 datasource db {
