@@ -11,6 +11,8 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
+    // Migrations need a direct (non-pooled) connection. On Neon/Vercel that's
+    // DATABASE_URL_UNPOOLED; locally only DATABASE_URL (Docker) is set, so fall back.
+    url: process.env.DATABASE_URL_UNPOOLED ?? env("DATABASE_URL"),
   },
 });
