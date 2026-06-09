@@ -24,7 +24,23 @@ const PRODUCT_FORMATS = [
   BarcodeFormat.UPC_A,
   BarcodeFormat.UPC_E,
 ];
-const HINTS = new Map([[DecodeHintType.POSSIBLE_FORMATS, PRODUCT_FORMATS]]);
+const HINTS = new Map<DecodeHintType, unknown>([
+  [DecodeHintType.POSSIBLE_FORMATS, PRODUCT_FORMATS],
+  // Spend more effort per frame. The default fast pass gives up on the slightly
+  // blurred / angled captures you get from a handheld phone; TRY_HARDER is the
+  // difference between "camera shows but never decodes" and an actual read.
+  [DecodeHintType.TRY_HARDER, true],
+]);
+
+// Ask the camera for a high-res stream. decodeFromConstraints requests no
+// resolution by default, so mobile browsers commonly hand back 640×480 — too
+// few pixels per bar for ZXing to resolve an EAN/UPC at arm's length. Values
+// are `ideal`, so devices without a 1080p rear camera still fall back cleanly.
+const VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  facingMode: { ideal: "environment" },
+  width: { ideal: 1920 },
+  height: { ideal: 1080 },
+};
 
 // Camera barcode scanner (ZXing). Opens a modal, streams the rear camera, and
 // calls onDetected with the first decoded barcode. The stream is always torn
@@ -61,7 +77,7 @@ export function BarcodeScanner({
       .decodeFromConstraints(
         // Prefer the rear camera on phones; `ideal` falls back to whatever
         // exists (e.g. a laptop's only, front-facing camera).
-        { video: { facingMode: { ideal: "environment" } } },
+        { video: VIDEO_CONSTRAINTS },
         video,
         (result) => {
           if (result && !stopped) {
