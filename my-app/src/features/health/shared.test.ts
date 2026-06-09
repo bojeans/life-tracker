@@ -18,6 +18,17 @@ const profile = {
 function weightRow(date: string, weightKg: number) {
   return { id: date, date: new Date(`${date}T00:00:00.000Z`), weightKg, note: null, source: "MANUAL" };
 }
+function bpRow(date: string, systolic: number, diastolic: number) {
+  return {
+    id: date,
+    date: new Date(`${date}T00:00:00.000Z`),
+    systolic,
+    diastolic,
+    pulse: null,
+    note: null,
+    source: "MANUAL",
+  };
+}
 function dietRow(date: string, calories: number) {
   return {
     id: date,
@@ -51,6 +62,10 @@ describe("getSharedHealth", () => {
       weightEntries: [weightRow("2026-06-08", 81), weightRow("2026-06-01", 83)],
       dietEntries: [dietRow("2026-06-08", 2000)],
       exerciseEntries: [],
+      bloodPressureEntries: [
+        bpRow("2026-06-08", 118, 76),
+        bpRow("2026-06-01", 138, 88),
+      ],
     });
 
     const result = await getSharedHealth("example-user");
@@ -65,6 +80,17 @@ describe("getSharedHealth", () => {
     expect(result!.baseline).toBeGreaterThan(1500);
     // Balance covers the one diet day; avg intake matches it.
     expect(result!.balanceSummary.avgIntake).toBe(2000);
+    // Latest BP is the newest reading, classified by AHA bands.
+    expect(result!.latestBloodPressure).toEqual({
+      systolic: 118,
+      diastolic: 76,
+      pulse: null,
+    });
+    expect(result!.bloodPressureCategory!.key).toBe("normal");
+    // Trend is oldest-first.
+    expect(result!.bloodPressureTrend.map((p) => p.systolic)).toEqual([
+      138, 118,
+    ]);
   });
 
   it("omits energy balance when there is no profile", async () => {
@@ -74,6 +100,7 @@ describe("getSharedHealth", () => {
       weightEntries: [weightRow("2026-06-01", 80)],
       dietEntries: [dietRow("2026-06-01", 2000)],
       exerciseEntries: [],
+      bloodPressureEntries: [],
     });
 
     const result = await getSharedHealth("example-user");
@@ -81,5 +108,9 @@ describe("getSharedHealth", () => {
     expect(result!.baseline).toBeNull();
     expect(result!.balance).toHaveLength(0);
     expect(result!.weightTrend).toHaveLength(1); // weight still shown
+    // No readings → no BP summary, but still counts as having data via weight.
+    expect(result!.latestBloodPressure).toBeNull();
+    expect(result!.bloodPressureCategory).toBeNull();
+    expect(result!.bloodPressureTrend).toHaveLength(0);
   });
 });
