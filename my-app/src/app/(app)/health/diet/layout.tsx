@@ -4,6 +4,7 @@ const tabs = [
   { href: "/health/diet", label: "Dashboard", exact: true },
   { href: "/health/diet/manage", label: "Manage" },
   { href: "/health/diet/pantry", label: "Pantry" },
+  { href: "/health/diet/recipes", label: "Recipes" },
 ];
 
 export default function DietLayout({

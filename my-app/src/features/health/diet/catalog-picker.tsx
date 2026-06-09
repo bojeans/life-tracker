@@ -13,28 +13,31 @@ export type CatalogPick = {
   name: string;
   barcode: string | null;
   grams: number;
+  // Macros scaled to `grams`.
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
+  // Unscaled per-100g macros, for consumers (e.g. recipes) that store a
+  // snapshot and rescale later.
+  per100g: { calories: number; protein: number; carbs: number; fat: number };
 };
 
 function scaledPick(item: FoodItemDTO, grams: number): CatalogPick {
-  const m = scaleMacros(
-    {
-      calories: item.calories,
-      protein: item.protein,
-      carbs: item.carbs,
-      fat: item.fat,
-    },
-    grams,
-  );
+  const per100g = {
+    calories: item.calories,
+    protein: item.protein,
+    carbs: item.carbs,
+    fat: item.fat,
+  };
+  const m = scaleMacros(per100g, grams);
   return {
     foodItemId: item.id,
     name: item.name,
     barcode: item.barcode,
     grams,
     ...m,
+    per100g,
   };
 }
 
