@@ -5,6 +5,7 @@ const tabs = [
   { href: "/health/diet", label: "Diet" },
   { href: "/health/exercise", label: "Exercise" },
   { href: "/health/weight", label: "Weight" },
+  { href: "/health/blood-pressure", label: "Blood pressure" },
   { href: "/health/profile", label: "Profile" },
 ];
 

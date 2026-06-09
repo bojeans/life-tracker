@@ -46,6 +46,20 @@ const demoWeights = [
   { daysAgo: 0, weightKg: 81.4 },
 ];
 
+// Readings trend down over the month (alongside the weight loss), moving from
+// AHA "stage 1" → "elevated" → "normal" so the category badges show variety.
+const demoBloodPressure = [
+  { daysAgo: 28, systolic: 138, diastolic: 88, pulse: 72 },
+  { daysAgo: 24, systolic: 135, diastolic: 86, pulse: 70 },
+  { daysAgo: 21, systolic: 132, diastolic: 84, pulse: 71 },
+  { daysAgo: 17, systolic: 130, diastolic: 83, pulse: 68 },
+  { daysAgo: 14, systolic: 127, diastolic: 79, pulse: 67 },
+  { daysAgo: 10, systolic: 124, diastolic: 78, pulse: 66 },
+  { daysAgo: 7, systolic: 122, diastolic: 77, pulse: 65 },
+  { daysAgo: 3, systolic: 119, diastolic: 76, pulse: 64 },
+  { daysAgo: 0, systolic: 118, diastolic: 75, pulse: 63 },
+];
+
 const demoDietTotals = [
   { daysAgo: 7, calories: 2180, protein: 165, carbs: 190, fat: 70 },
   { daysAgo: 6, calories: 2240, protein: 150, carbs: 210, fat: 78 },
@@ -78,6 +92,7 @@ const demoFoodItems = [
 export const DEMO_COUNTS = {
   transactions: demoTransactions.length,
   weights: demoWeights.length,
+  bloodPressure: demoBloodPressure.length,
   dietDays: demoDietTotals.length,
   workouts: demoExercise.length,
   pantry: demoFoodItems.length,
@@ -88,6 +103,7 @@ export const DEMO_COUNTS = {
 export async function seedDemoData(db: PrismaClient, userId: string) {
   await db.transaction.deleteMany({ where: { userId } });
   await db.weightEntry.deleteMany({ where: { userId } });
+  await db.bloodPressureEntry.deleteMany({ where: { userId } });
   await db.dietEntry.deleteMany({ where: { userId } });
   await db.exerciseEntry.deleteMany({ where: { userId } });
   await db.foodItem.deleteMany({ where: { userId } });
@@ -116,6 +132,17 @@ export async function seedDemoData(db: PrismaClient, userId: string) {
       userId,
       date: daysAgoUtc(w.daysAgo),
       weightKg: w.weightKg,
+      source: "MANUAL" as const,
+    })),
+  });
+
+  await db.bloodPressureEntry.createMany({
+    data: demoBloodPressure.map((bp) => ({
+      userId,
+      date: daysAgoUtc(bp.daysAgo),
+      systolic: bp.systolic,
+      diastolic: bp.diastolic,
+      pulse: bp.pulse,
       source: "MANUAL" as const,
     })),
   });
