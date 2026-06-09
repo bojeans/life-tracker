@@ -22,7 +22,7 @@ async function main() {
 
   console.log(`Seeded data for ${demo.email}:`);
   console.log(`  • ${DEMO_COUNTS.transactions} transactions`);
-  console.log(`  • ${DEMO_COUNTS.weights} weight entries, ${DEMO_COUNTS.dietDays} diet days`);
+  console.log(`  • ${DEMO_COUNTS.weights} weight entries, ${DEMO_COUNTS.bloodPressure} BP readings, ${DEMO_COUNTS.dietDays} diet days`);
   console.log(`  • ${DEMO_COUNTS.workouts} workouts, ${DEMO_COUNTS.pantry} pantry items, 1 profile`);
   console.log(`Share URL: http://localhost:3000/shared/${demo.shareToken}`);
 }

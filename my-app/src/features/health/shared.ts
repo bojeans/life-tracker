@@ -3,6 +3,13 @@ import { toWeightEntryDTO } from "./weight/serialize";
 import { toDietEntryDTO } from "./diet/serialize";
 import { toExerciseEntryDTO } from "./exercise/serialize";
 import { toProfileDTO } from "./profile/serialize";
+import { toBloodPressureEntryDTO } from "./blood-pressure/serialize";
+import {
+  bloodPressureTrend,
+  classifyBloodPressure,
+  type BloodPressurePoint,
+  type BloodPressureCategory,
+} from "./blood-pressure/analytics";
 import {
   weightTrend,
   weightChange,
@@ -28,6 +35,13 @@ export type SharedHealth = {
   baseline: number | null;
   balance: BalanceDay[];
   balanceSummary: BalanceSummary;
+  latestBloodPressure: {
+    systolic: number;
+    diastolic: number;
+    pulse: number | null;
+  } | null;
+  bloodPressureCategory: BloodPressureCategory | null;
+  bloodPressureTrend: BloodPressurePoint[];
 };
 
 // Public, read-only health snapshot by share token. No auth. Returns null if the
@@ -44,6 +58,7 @@ export async function getSharedHealth(
       weightEntries: { orderBy: { date: "desc" } },
       dietEntries: { orderBy: { date: "desc" } },
       exerciseEntries: { orderBy: { date: "desc" } },
+      bloodPressureEntries: { orderBy: { date: "desc" } },
     },
   });
 
@@ -52,7 +67,11 @@ export async function getSharedHealth(
   const weights = user.weightEntries.map(toWeightEntryDTO);
   const diet = user.dietEntries.map(toDietEntryDTO);
   const exercise = user.exerciseEntries.map(toExerciseEntryDTO);
+  const bloodPressure = user.bloodPressureEntries.map(toBloodPressureEntryDTO);
   const profile = user.profile ? toProfileDTO(user.profile) : null;
+
+  // entries are date-desc, so [0] is the most recent reading.
+  const latestBp = bloodPressure[0] ?? null;
 
   const latestWeightKg = weights[0]?.weightKg ?? null;
   const baseline =
@@ -64,7 +83,11 @@ export async function getSharedHealth(
 
   return {
     ownerName: user.name,
-    hasData: weights.length > 0 || exercise.length > 0 || diet.length > 0,
+    hasData:
+      weights.length > 0 ||
+      exercise.length > 0 ||
+      diet.length > 0 ||
+      bloodPressure.length > 0,
     latestWeightKg,
     weightTrend: weightTrend(weights),
     weightChange: weightChange(weights),
@@ -72,5 +95,16 @@ export async function getSharedHealth(
     baseline,
     balance,
     balanceSummary: summarizeBalance(balance),
+    latestBloodPressure: latestBp
+      ? {
+          systolic: latestBp.systolic,
+          diastolic: latestBp.diastolic,
+          pulse: latestBp.pulse,
+        }
+      : null,
+    bloodPressureCategory: latestBp
+      ? classifyBloodPressure(latestBp.systolic, latestBp.diastolic)
+      : null,
+    bloodPressureTrend: bloodPressureTrend(bloodPressure),
   };
 }

@@ -10,6 +10,7 @@ import {
 import { getExchangeRates } from "@/features/finance/currency-actions";
 import { getSharedHealth } from "@/features/health/shared";
 import { SharedHealthCharts } from "@/features/health/shared-health-charts";
+import { CategoryBadge } from "@/features/health/blood-pressure/category-badge";
 import { LaunchDemoButton } from "@/features/demo/launch-demo-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -127,6 +128,13 @@ export default async function SharedPage({ params }: Props) {
                 }
               />
             )}
+            {health.latestBloodPressure && (
+              <SummaryCard
+                label="Latest BP"
+                value={`${health.latestBloodPressure.systolic}/${health.latestBloodPressure.diastolic}`}
+                accent=""
+              />
+            )}
             {health.baseline != null ? (
               <>
                 <SummaryCard
@@ -153,8 +161,18 @@ export default async function SharedPage({ params }: Props) {
             )}
           </div>
 
+          {health.bloodPressureCategory && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+              <CategoryBadge category={health.bloodPressureCategory} />
+              <p className="text-muted-foreground text-sm">
+                {health.bloodPressureCategory.advice}
+              </p>
+            </div>
+          )}
+
           <SharedHealthCharts
             weightTrend={health.weightTrend}
+            bloodPressureTrend={health.bloodPressureTrend}
             balance={health.balance}
           />
         </section>

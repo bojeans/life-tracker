@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, HeartPulse, Plane, LogOut } from "lucide-react";
+import { Wallet, HeartPulse, Plane, Share2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/finance", label: "Finance", icon: Wallet },
   { href: "/health", label: "Health", icon: HeartPulse },
   { href: "/travel", label: "Travel", icon: Plane },
+  { href: "/share", label: "Share", icon: Share2 },
 ];
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {

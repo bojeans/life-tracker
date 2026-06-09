@@ -36,6 +36,8 @@ model User {
   weightEntries   WeightEntry[]
   foodItems       FoodItem[]
   exerciseEntries ExerciseEntry[]
+  bloodPressureEntries BloodPressureEntry[]
+  recipes         Recipe[]
   profile         Profile?
 }
 
@@ -193,13 +195,56 @@ model FoodItem {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries DietEntry[]
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries     DietEntry[]
+  recipeUses  RecipeIngredient[]
 
   // A null barcode is allowed for many manual items (Postgres allows multiple
   // NULLs); scanned items dedupe on their barcode.
   @@unique([userId, barcode])
   @@index([userId, name])
+}
+
+// A reusable meal/smoothie composed of pantry items (e.g. "100g chicken + half
+// an onion"). `servings` lets a batch be logged a portion at a time. Logging a
+// recipe writes a single DietEntry with the summed (÷ servings) macros, so it
+// flows into the normal diet analytics.
+model Recipe {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  servings    Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredients RecipeIngredient[]
+
+  @@index([userId, name])
+}
+
+// One pantry item in a recipe at a gram quantity. Macros are a per-100g
+// snapshot (like DietEntry) so the recipe survives the catalog item being
+// edited or deleted, and grams can be rescaled without re-fetching. foodItemId
+// is kept (SetNull) only as a back-reference.
+model RecipeIngredient {
+  id         String   @id @default(cuid())
+  recipeId   String
+  foodItemId String?
+  name       String
+  quantityG  Decimal  @db.Decimal(10, 2)
+  // per-100g snapshot
+  calories   Decimal  @db.Decimal(10, 2)
+  protein    Decimal  @db.Decimal(10, 2)
+  carbs      Decimal  @db.Decimal(10, 2)
+  fat        Decimal  @db.Decimal(10, 2)
+  sortOrder  Int      @default(0)
+
+  recipe   Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  foodItem FoodItem? @relation(fields: [foodItemId], references: [id], onDelete: SetNull)
+
+  @@index([recipeId])
 }
 
 enum Sex {
@@ -249,6 +294,28 @@ model ExerciseEntry {
   externalId     String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, source, externalId])
+  @@index([userId, date])
+}
+
+// A blood-pressure reading. systolic/diastolic are whole mmHg; pulse (bpm) is
+// optional since not every reading records it. Classified (AHA categories) at
+// read time in analytics rather than stored, so the thresholds can evolve.
+model BloodPressureEntry {
+  id         String       @id @default(cuid())
+  userId     String
+  date       DateTime
+  systolic   Int
+  diastolic  Int
+  pulse      Int?
+  note       String?
+  source     HealthSource @default(MANUAL)
+  externalId String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
