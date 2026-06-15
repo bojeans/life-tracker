@@ -62,7 +62,17 @@ export async function importExerciseCsv(
   csvText: string,
 ): Promise<ExerciseCsvImportResult> {
   const userId = await requireUserId();
-  const { valid, errors } = parseExerciseCsv(csvText);
+
+  // Latest weight (entries are date-desc) lets the parser estimate calories for
+  // rows that don't include them.
+  const latestWeight = await db.weightEntry.findFirst({
+    where: { userId },
+    orderBy: { date: "desc" },
+    select: { weightKg: true },
+  });
+  const weightKg = latestWeight ? Number(latestWeight.weightKg) : null;
+
+  const { valid, errors } = parseExerciseCsv(csvText, { weightKg });
 
   let imported = 0;
   if (valid.length > 0) {

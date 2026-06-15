@@ -18,11 +18,15 @@ const HEADER_ALIASES: Record<string, string> = {
   mealtype: "meal",
   "meal type": "meal",
   calories: "calories",
+  calorie: "calories",
   kcal: "calories",
   energy: "calories",
   cals: "calories",
+  cal: "calories",
   protein: "protein",
+  proteins: "protein",
   carbs: "carbs",
+  carb: "carbs",
   carbohydrate: "carbs",
   carbohydrates: "carbs",
   fat: "fat",
@@ -56,8 +60,9 @@ function num(raw: string | undefined): number {
 /**
  * Parses a diet CSV (e.g. a Google Sheets export). Expected columns
  * (case-insensitive, aliases supported):
- *   - date     (required)
- *   - calories, protein, carbs, fat (numbers; blank treated as 0)
+ *   - date     (required; if no column is named "date", the FIRST column is
+ *               used — so a date column with a blank header still works)
+ *   - calories, protein, carbs, fat (numbers; singular or plural; blank => 0)
  *   - name     (optional; rows WITHOUT a name become a "Daily total" row)
  *   - meal     (optional: breakfast/lunch/dinner/snack)
  *   - quantity (optional; grams)
@@ -70,6 +75,12 @@ export function parseDietCsv(csvText: string): DietCsvParseResult {
     transformHeader: normalizeHeader,
   });
 
+  // Resolve which column holds the date. Prefer an explicit "date" header;
+  // otherwise fall back to the first column (matches the finance convention
+  // that column A is the date, and handles a blank/un-named date header).
+  const fields = parsed.meta.fields ?? [];
+  const dateKey = fields.includes("date") ? "date" : (fields[0] ?? "date");
+
   const valid: DietEntryInput[] = [];
   const errors: { row: number; message: string }[] = [];
 
@@ -77,7 +88,7 @@ export function parseDietCsv(csvText: string): DietCsvParseResult {
     // +2: one for the header line, one for 1-based numbering.
     const rowNumber = i + 2;
 
-    const dateRaw = (raw.date ?? "").trim();
+    const dateRaw = (raw[dateKey] ?? "").trim();
     const date = parseFlexibleDate(dateRaw);
     if (!date) {
       errors.push({ row: rowNumber, message: `Invalid date "${dateRaw}"` });

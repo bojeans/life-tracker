@@ -34,10 +34,11 @@ export function DietCsvImport() {
         <div>
           <p className="font-medium">Import from CSV</p>
           <p className="text-muted-foreground text-sm">
-            Columns: <code>date</code>, <code>calories</code>,{" "}
-            <code>protein</code>, <code>carbs</code>, <code>fat</code>, and
-            optionally <code>name</code>, <code>meal</code>. Rows with no name
-            are stored as a daily total.
+            Columns: a date (first column, header optional) plus{" "}
+            <code>calorie</code>, <code>protein</code>, <code>carb</code>,{" "}
+            <code>fat</code> (singular or plural), and optionally{" "}
+            <code>name</code>, <code>meal</code>. Rows with no name are stored as
+            a daily total.
           </p>
         </div>
         <input
