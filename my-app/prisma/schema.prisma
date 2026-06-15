@@ -132,6 +132,13 @@ enum AssetClass {
   SUPER
 }
 
+// Whether an account adds to or subtracts from net worth. Liabilities (e.g. a
+// student loan) hold a positive balance owed and are subtracted.
+enum AccountKind {
+  ASSET
+  LIABILITY
+}
+
 // A place wealth is held (e.g. Kiwibank, Sharesies, crypto.com). Its balance
 // over time is captured as BalanceSnapshots; net worth is the sum of each
 // account's latest balance, converted to the base currency.
@@ -140,6 +147,7 @@ model WealthAccount {
   userId      String
   name        String
   institution String?
+  kind        AccountKind @default(ASSET)
   assetClass  AssetClass
   currency    String     @default("NZD")
   createdAt   DateTime   @default(now())

@@ -72,8 +72,13 @@ export default async function SharedPage({ params }: Props) {
           />
         </div>
 
+        {/* No filter chips on the public view, so show both the monthly bars
+            and the spending breakdown side by side. */}
         {all.length > 0 && (
-          <FinanceCharts transactions={all} currency={BASE_CURRENCY} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <FinanceCharts transactions={all} currency={BASE_CURRENCY} type="ALL" />
+            <FinanceCharts transactions={all} currency={BASE_CURRENCY} type="EXPENSE" />
+          </div>
         )}
 
         <div className="space-y-3">

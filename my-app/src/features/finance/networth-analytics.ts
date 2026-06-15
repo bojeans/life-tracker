@@ -48,19 +48,38 @@ export function latestBalances(
   });
 }
 
+const isLiability = (b: AccountBalance) => b.account.kind === "LIABILITY";
+// Signed contribution to net worth: assets add, liabilities subtract.
+const signed = (b: AccountBalance) =>
+  isLiability(b) ? -b.baseBalance : b.baseBalance;
+
+// Net worth = total assets − total liabilities (base currency).
 export function netWorthTotal(balances: AccountBalance[]): number {
-  return round2(balances.reduce((sum, b) => sum + b.baseBalance, 0));
+  return round2(balances.reduce((sum, b) => sum + signed(b), 0));
+}
+
+export function totalAssets(balances: AccountBalance[]): number {
+  return round2(
+    balances.filter((b) => !isLiability(b)).reduce((s, b) => s + b.baseBalance, 0),
+  );
+}
+
+export function totalLiabilities(balances: AccountBalance[]): number {
+  return round2(
+    balances.filter(isLiability).reduce((s, b) => s + b.baseBalance, 0),
+  );
 }
 
 export type CompositionSlice = { assetClass: string; total: number };
 
-// Net worth split by asset class (base currency), largest first, zero classes
-// dropped.
+// Asset composition by class (base currency), largest first, zero classes
+// dropped. Liabilities are excluded — they're shown as a separate total.
 export function compositionByClass(
   balances: AccountBalance[],
 ): CompositionSlice[] {
   const map = new Map<string, number>();
   for (const b of balances) {
+    if (isLiability(b)) continue;
     map.set(
       b.account.assetClass,
       (map.get(b.account.assetClass) ?? 0) + b.baseBalance,
@@ -85,6 +104,7 @@ export function netWorthOverTime(
   rates: Rates | null,
 ): NetWorthPoint[] {
   const currency = new Map(accounts.map((a) => [a.id, a.currency]));
+  const liability = new Map(accounts.map((a) => [a.id, a.kind === "LIABILITY"]));
   const byAccount = new Map<string, BalanceSnapshotDTO[]>();
   for (const s of snapshots) {
     const list = byAccount.get(s.accountId) ?? [];
@@ -106,7 +126,13 @@ export function netWorthOverTime(
         else break;
       }
       if (latest) {
-        total += toBase(latest.balance, currency.get(accountId) ?? base, base, rates);
+        const value = toBase(
+          latest.balance,
+          currency.get(accountId) ?? base,
+          base,
+          rates,
+        );
+        total += liability.get(accountId) ? -value : value;
       }
     }
     return {

@@ -4,6 +4,7 @@ export type AccountRow = {
   id: string;
   name: string;
   institution: string | null;
+  kind: string;
   assetClass: string;
   currency: string;
 };
@@ -20,6 +21,7 @@ export function toAccountDTO(row: AccountRow): AccountDTO {
     id: row.id,
     name: row.name,
     institution: row.institution,
+    kind: row.kind,
     assetClass: row.assetClass,
     currency: row.currency,
   };

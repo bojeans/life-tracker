@@ -11,10 +11,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getNetWorthData, deleteAccount } from "./networth-actions";
+import { getNetWorthData, deleteAccount, deleteSnapshot } from "./networth-actions";
 import {
   latestBalances,
   netWorthTotal,
+  totalAssets,
+  totalLiabilities,
   compositionByClass,
   netWorthOverTime,
 } from "./networth-analytics";
@@ -60,6 +62,8 @@ export function NetWorthView({
     [accounts, snapshots, rates],
   );
   const total = useMemo(() => netWorthTotal(balances), [balances]);
+  const assets = useMemo(() => totalAssets(balances), [balances]);
+  const liabilities = useMemo(() => totalLiabilities(balances), [balances]);
   const composition = useMemo(() => compositionByClass(balances), [balances]);
   const overTime = useMemo(
     () => netWorthOverTime(accounts, snapshots, BASE_CURRENCY, rates),
@@ -76,6 +80,22 @@ export function NetWorthView({
       queryClient.invalidateQueries({ queryKey: ["netWorth"] }),
   });
 
+  const removeSnapshot = useMutation({
+    mutationFn: (id: string) => deleteSnapshot(id),
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["netWorth"] }),
+  });
+
+  const accountById = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a])),
+    [accounts],
+  );
+  // Most recent first, for the editable history list.
+  const history = useMemo(
+    () => [...snapshots].sort((a, b) => b.date.localeCompare(a.date)),
+    [snapshots],
+  );
+
   const hasData = snapshots.length > 0;
 
   return (
@@ -91,6 +111,11 @@ export function NetWorthView({
             <div className="rounded-lg border p-4 sm:col-span-1">
               <p className="text-muted-foreground text-sm">Net worth</p>
               <p className="mt-1 text-2xl font-semibold">{money(total)}</p>
+              {liabilities > 0 && (
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {money(assets)} assets − {money(liabilities)} owed
+                </p>
+              )}
               {rates == null && (
                 <p className="text-muted-foreground mt-1 text-xs">
                   Mixed currencies shown unconverted until rates load.
@@ -159,7 +184,12 @@ export function NetWorthView({
             </div>
           )}
 
-          <BalanceEntry accounts={accounts} latest={latestMap} />
+          <BalanceEntry
+            accounts={accounts}
+            latest={latestMap}
+            base={BASE_CURRENCY}
+            rates={rates}
+          />
         </>
       )}
 
@@ -189,7 +219,10 @@ export function NetWorthView({
                     )}
                   </p>
                   <p className="text-muted-foreground text-xs">
-                    {classLabel(account.assetClass)} ·{" "}
+                    {account.kind === "LIABILITY"
+                      ? "Liability"
+                      : classLabel(account.assetClass)}{" "}
+                    ·{" "}
                     {account.currency !== BASE_CURRENCY
                       ? `${formatMoney(balance, account.currency)} → ${money(baseBalance)}`
                       : money(baseBalance)}
@@ -219,6 +252,49 @@ export function NetWorthView({
           </ul>
         )}
       </section>
+
+      {history.length > 0 && (
+        <section className="space-y-3 rounded-lg border p-4">
+          <h2 className="font-semibold">Balance history</h2>
+          <ul className="max-h-72 divide-y overflow-y-auto rounded-md border">
+            {history.map((s) => {
+              const acc = accountById.get(s.accountId);
+              return (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between gap-3 p-2 text-sm"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="text-muted-foreground">
+                      {new Date(s.date).toLocaleDateString("en-NZ", {
+                        timeZone: "UTC",
+                      })}
+                    </span>{" "}
+                    · {acc?.name ?? "—"}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="tabular-nums">
+                      {formatMoney(s.balance, acc?.currency ?? BASE_CURRENCY)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Delete ${acc?.name ?? ""} balance on ${s.date.slice(0, 10)}`}
+                      onClick={() => removeSnapshot.mutate(s.id)}
+                    >
+                      Delete
+                    </Button>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="text-muted-foreground text-xs">
+            To correct a balance, re-record that date in the form above, or delete
+            the entry here.
+          </p>
+        </section>
+      )}
 
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-md">
