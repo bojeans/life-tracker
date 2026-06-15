@@ -19,8 +19,16 @@ const daysAgoUtc = (n: number) => {
 };
 
 const demoTransactions = [
-  { type: "INCOME", amount: 5200, category: "Salary", description: "Monthly pay", daysAgo: 28 },
-  { type: "INCOME", amount: 5200, category: "Salary", description: "Monthly pay", daysAgo: 0 },
+  // Pay is recorded gross, with PAYE/student-loan as deductions and KiwiSaver as
+  // a transfer to wealth — so the dashboard can show effective tax + savings rate.
+  { type: "INCOME", amount: 6800, category: "Salary", description: "Gross pay", daysAgo: 28 },
+  { type: "EXPENSE", amount: 1300, category: "Tax", description: "PAYE", daysAgo: 28 },
+  { type: "EXPENSE", amount: 480, category: "Student loan", description: "Repayment", daysAgo: 28 },
+  { type: "TRANSFER", amount: 204, category: "KiwiSaver", description: "3% contribution", daysAgo: 28 },
+  { type: "INCOME", amount: 6800, category: "Salary", description: "Gross pay", daysAgo: 0 },
+  { type: "EXPENSE", amount: 1300, category: "Tax", description: "PAYE", daysAgo: 0 },
+  { type: "EXPENSE", amount: 480, category: "Student loan", description: "Repayment", daysAgo: 0 },
+  { type: "TRANSFER", amount: 204, category: "KiwiSaver", description: "3% contribution", daysAgo: 0 },
   { type: "INCOME", amount: 320.5, category: "Dividends", description: "ETF distribution", daysAgo: 14 },
   { type: "EXPENSE", amount: 1850, category: "Rent", description: "Apartment", daysAgo: 27 },
   { type: "EXPENSE", amount: 1850, category: "Rent", description: "Apartment", daysAgo: 1 },
@@ -32,6 +40,10 @@ const demoTransactions = [
   { type: "EXPENSE", amount: 56.8, category: "Dining", description: "Dinner out", daysAgo: 6 },
   { type: "EXPENSE", amount: 22.99, category: "Subscriptions", description: "Streaming", daysAgo: 10 },
   { type: "EXPENSE", amount: 240, category: "Utilities", description: "Electricity", daysAgo: 9 },
+  // Own-account move (bank → Sharesies): a TRANSFER, so it's excluded from
+  // income/expense and shown separately.
+  { type: "TRANSFER", amount: 600, category: "To Sharesies", description: "Investing", daysAgo: 26 },
+  { type: "TRANSFER", amount: 600, category: "To Sharesies", description: "Investing", daysAgo: 2 },
 ] as const;
 
 const demoWeights = [
@@ -89,8 +101,20 @@ const demoFoodItems = [
   { name: "Brown rice (cooked)", brand: null, category: "Grains", calories: 123, protein: 2.7, carbs: 26, fat: 1, fiber: 1.8, sugar: null },
 ];
 
+// Net-worth accounts with a few monthly balance snapshots (oldest → newest),
+// showing wealth trending up across cash, shares, super and crypto.
+const demoNetWorth = [
+  { name: "Kiwibank", institution: "Kiwibank", assetClass: "CASH" as const, currency: "NZD", balances: [7800, 8200, 8600, 9000] },
+  { name: "Sharesies", institution: "Sharesies", assetClass: "SHARES" as const, currency: "NZD", balances: [14000, 15200, 16100, 17400] },
+  { name: "KiwiSaver", institution: "Sharesies", assetClass: "SUPER" as const, currency: "NZD", balances: [31000, 32200, 33100, 34500] },
+  { name: "crypto.com", institution: "crypto.com", assetClass: "CRYPTO" as const, currency: "NZD", balances: [3200, 2900, 3600, 4100] },
+  { name: "CBA", institution: "Commonwealth Bank", assetClass: "CASH" as const, currency: "AUD", balances: [2200, 2000, 2500, 2300] },
+];
+const SNAPSHOT_DAYS_AGO = [90, 60, 30, 0];
+
 export const DEMO_COUNTS = {
   transactions: demoTransactions.length,
+  accounts: demoNetWorth.length,
   weights: demoWeights.length,
   bloodPressure: demoBloodPressure.length,
   dietDays: demoDietTotals.length,
@@ -102,6 +126,7 @@ export const DEMO_COUNTS = {
 // seed and from the in-app reset button.
 export async function seedDemoData(db: PrismaClient, userId: string) {
   await db.transaction.deleteMany({ where: { userId } });
+  await db.wealthAccount.deleteMany({ where: { userId } }); // snapshots cascade
   await db.weightEntry.deleteMany({ where: { userId } });
   await db.bloodPressureEntry.deleteMany({ where: { userId } });
   await db.dietEntry.deleteMany({ where: { userId } });
@@ -189,4 +214,25 @@ export async function seedDemoData(db: PrismaClient, userId: string) {
       source: "MANUAL" as const,
     })),
   });
+
+  // Accounts + their balance snapshots (nested create so each snapshot links to
+  // its new account id).
+  for (const acc of demoNetWorth) {
+    await db.wealthAccount.create({
+      data: {
+        userId,
+        name: acc.name,
+        institution: acc.institution,
+        assetClass: acc.assetClass,
+        currency: acc.currency,
+        snapshots: {
+          create: acc.balances.map((balance, i) => ({
+            userId,
+            date: daysAgoUtc(SNAPSHOT_DAYS_AGO[i]),
+            balance,
+          })),
+        },
+      },
+    });
+  }
 }

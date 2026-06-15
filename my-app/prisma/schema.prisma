@@ -23,6 +23,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  wealthAccounts   WealthAccount[]
+  balanceSnapshots BalanceSnapshot[]
+
   shareToken String? @unique @default(cuid())
   // When true, this account is a public sandbox: visitors holding its
   // shareToken can act as it (add/edit/delete) via demo mode. Never set on a
@@ -84,6 +87,9 @@ model VerificationToken {
 enum TransactionType {
   INCOME
   EXPENSE
+  // A move between the user's own accounts (e.g. bank → Sharesies). Excluded
+  // from income/expense/net totals — it doesn't change net worth.
+  TRANSFER
 }
 
 // Where a transaction originated. MANUAL is the default; CSV and SHARESIGHT
@@ -115,6 +121,51 @@ model Transaction {
   // Prevent importing the same external record twice. Multiple NULLs are
   // allowed by Postgres, so manual entries are unaffected.
   @@unique([userId, source, externalId])
+  @@index([userId, date])
+}
+
+// Asset class for a net-worth account, so balances roll up into a composition.
+enum AssetClass {
+  CASH
+  SHARES
+  CRYPTO
+  SUPER
+}
+
+// A place wealth is held (e.g. Kiwibank, Sharesies, crypto.com). Its balance
+// over time is captured as BalanceSnapshots; net worth is the sum of each
+// account's latest balance, converted to the base currency.
+model WealthAccount {
+  id          String     @id @default(cuid())
+  userId      String
+  name        String
+  institution String?
+  assetClass  AssetClass
+  currency    String     @default("NZD")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots BalanceSnapshot[]
+
+  @@index([userId])
+}
+
+// A point-in-time balance for one account. One per account per date (upserted),
+// so re-recording a month overwrites rather than duplicates.
+model BalanceSnapshot {
+  id        String   @id @default(cuid())
+  userId    String
+  accountId String
+  date      DateTime
+  balance   Decimal  @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account WealthAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, date])
   @@index([userId, date])
 }
 
@@ -179,6 +230,11 @@ model FoodItem {
   brand        String?
   category     String?
   barcode      String?
+  // A serving as the user entered it (e.g. 1 "tbsp"), plus its gram equivalent.
+  // servingSizeG stays canonical for macro math; amount/unit are for display
+  // and to default the logging unit. Null unit ⇒ plain grams / OFF import.
+  servingAmount Decimal?    @db.Decimal(10, 3)
+  servingUnit  String?
   servingSizeG Decimal?     @db.Decimal(10, 2)
   // per-100g macros
   calories     Decimal      @db.Decimal(10, 2)

@@ -2,7 +2,11 @@ import { describe, it, expect } from "vitest";
 import { monthlyTotals } from "./analytics";
 import type { TransactionDTO } from "./types";
 
-function txn(date: string, type: "INCOME" | "EXPENSE", amount: number): TransactionDTO {
+function txn(
+  date: string,
+  type: "INCOME" | "EXPENSE" | "TRANSFER",
+  amount: number,
+): TransactionDTO {
   return {
     id: `${date}-${amount}`,
     type,
@@ -48,5 +52,15 @@ describe("monthlyTotals", () => {
       "2026-05",
       "2026-06",
     ]);
+  });
+
+  it("excludes transfers from the monthly income/expense bars", () => {
+    const result = monthlyTotals([
+      txn("2026-05-10", "INCOME", 5000),
+      txn("2026-05-12", "EXPENSE", 1200),
+      txn("2026-05-15", "TRANSFER", 600),
+    ]);
+
+    expect(result[0]).toMatchObject({ income: 5000, expense: 1200, net: 3800 });
   });
 });

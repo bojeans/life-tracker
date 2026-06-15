@@ -49,6 +49,30 @@ describe("parseDietCsv", () => {
     expect(valid[0].date.toISOString()).toBe("2026-06-01T00:00:00.000Z");
   });
 
+  it("imports the day-breakdown export: blank date header + singular macros", () => {
+    // Matches the real "2026 - day breakdown" file: an un-named date column and
+    // protein/fat/carb/calorie in that order.
+    const csv = [
+      ",protein,fat,carb,calorie",
+      "31/05/2026,197.8,120.95,140.5,2435",
+      "01/06/2026,70.6,78.4,61.7,1281",
+    ].join("\n");
+
+    const { valid, errors } = parseDietCsv(csv);
+
+    expect(errors).toHaveLength(0);
+    expect(valid).toHaveLength(2);
+    expect(valid[0]).toMatchObject({
+      name: "Daily total",
+      isDailyTotal: true,
+      protein: 197.8,
+      fat: 120.95,
+      carbs: 140.5,
+      calories: 2435,
+    });
+    expect(valid[0].date.toISOString()).toBe("2026-05-31T00:00:00.000Z");
+  });
+
   it("reports invalid dates with their row number", () => {
     const csv = ["date,calories", "not-a-date,500"].join("\n");
 

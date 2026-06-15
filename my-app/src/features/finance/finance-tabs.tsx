@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { href: "/finance", label: "Dashboard", exact: true },
   { href: "/finance/manage", label: "Manage", exact: false },
+  { href: "/finance/networth", label: "Net worth", exact: false },
 ];
 
 export function FinanceTabs() {

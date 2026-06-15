@@ -5,7 +5,7 @@ import type { TransactionDTO } from "./types";
 export type TransactionFilter = {
   search?: string; // matches category + description, case-insensitive
   categories?: string[]; // empty / undefined = all categories
-  type?: "ALL" | "INCOME" | "EXPENSE";
+  type?: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
   from?: string; // "YYYY-MM-DD", inclusive
   to?: string; // "YYYY-MM-DD", inclusive
 };

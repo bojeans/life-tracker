@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { caloriesBurned, metFor } from "./exercise-calories";
+import {
+  caloriesBurned,
+  classifyCardio,
+  metForIntensity,
+  metFor,
+} from "./exercise-calories";
 import { parseExerciseCsv, externalIdFor } from "./csv";
 import { dailyBurn, summarizeExercise } from "./analytics";
 import type { ExerciseEntryDTO } from "./types";
@@ -13,6 +18,33 @@ describe("caloriesBurned (METs)", () => {
   it("looks up a MET value by activity name", () => {
     expect(metFor("Running (10 km/h)")).toBe(9.8);
     expect(metFor("Nope")).toBeUndefined();
+  });
+});
+
+describe("classifyCardio (pace → MET)", () => {
+  it("labels a brisk walk", () => {
+    // 6 km in 60 min = 6 km/h
+    expect(classifyCardio(6, 60)).toMatchObject({ met: 4.3, speedKmh: 6 });
+  });
+
+  it("labels a run from a faster pace", () => {
+    // 5 km in 30 min = 10 km/h
+    const est = classifyCardio(5, 30);
+    expect(est).toMatchObject({ met: 9.8, speedKmh: 10 });
+    expect(est?.activity).toBe("Run (10 km/h)");
+  });
+
+  it("returns null without both distance and duration", () => {
+    expect(classifyCardio(0, 30)).toBeNull();
+    expect(classifyCardio(5, 0)).toBeNull();
+  });
+});
+
+describe("metForIntensity", () => {
+  it("maps strength intensity to a MET", () => {
+    expect(metForIntensity("light")).toBe(3.5);
+    expect(metForIntensity("moderate")).toBe(5.0);
+    expect(metForIntensity("vigorous")).toBe(6.0);
   });
 });
 
@@ -39,6 +71,37 @@ describe("parseExerciseCsv", () => {
     );
     expect(valid).toHaveLength(0);
     expect(errors[0].row).toBe(2);
+  });
+
+  it("imports a blank-header date column and auto-fills cardio rows", () => {
+    // No activity/calories — just distance + duration under a headerless date.
+    const csv = [
+      ",distance,duration",
+      "01/06/2026,5,30", // 10 km/h run
+    ].join("\n");
+
+    const { valid, errors } = parseExerciseCsv(csv, { weightKg: 80 });
+
+    expect(errors).toHaveLength(0);
+    expect(valid[0]).toMatchObject({
+      activity: "Run (10 km/h)",
+      distanceKm: 5,
+      durationMin: 30,
+      // 9.8 MET × 80kg × 0.5h = 392
+      caloriesBurned: 392,
+    });
+    expect(valid[0].date.toISOString()).toBe("2026-06-01T00:00:00.000Z");
+  });
+
+  it("estimates calories for a strength row from a known activity MET", () => {
+    const csv = [
+      "date,activity,duration",
+      "2026-06-01,Strength training,40", // MET 5.0
+    ].join("\n");
+
+    const { valid } = parseExerciseCsv(csv, { weightKg: 80 });
+    // 5.0 × 80 × (40/60) = 266.67 → 267
+    expect(valid[0].caloriesBurned).toBe(267);
   });
 
   it("produces a stable externalId for dedup", () => {

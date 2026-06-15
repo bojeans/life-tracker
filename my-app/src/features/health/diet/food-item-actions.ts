@@ -7,15 +7,58 @@ import { foodItemSchema } from "./food-item-schema";
 import type { FoodItemDTO } from "./food-item-types";
 import { toFoodItemDTO, foodItemFieldsFromHit } from "./food-item-serialize";
 import type { FoodHit } from "./openfoodfacts";
+import { isUnit, toGrams } from "./units";
 
 // Owner (signed-in) or a gated demo visitor — see @/lib/actor.
 async function requireUserId(): Promise<string> {
   return resolveActorUserId();
 }
 
+// Serving columns from the validated amount+unit: grams stays canonical for the
+// macro math, amount/unit are kept for display.
+function servingFields(data: ReturnType<typeof foodItemSchema.parse>) {
+  const { servingAmount, servingUnit } = data;
+  const servingSizeG =
+    servingAmount != null && servingUnit && isUnit(servingUnit)
+      ? toGrams(servingAmount, servingUnit)
+      : null;
+  return {
+    servingAmount: servingAmount ?? null,
+    servingUnit: servingUnit ?? null,
+    servingSizeG,
+  };
+}
+
+// Rejects a manual item whose name+brand already exists in the pantry (barcode
+// dupes are caught by the DB unique constraint). Case-insensitive on name; a
+// matching brand (or both blank) is required, so "Yoghurt (Chobani)" and a
+// generic "Yoghurt" can coexist. `exceptId` skips the row being edited.
+async function assertNotDuplicate(
+  userId: string,
+  name: string,
+  brand: string | null,
+  exceptId?: string,
+): Promise<void> {
+  const existing = await db.foodItem.findFirst({
+    where: {
+      userId,
+      name: { equals: name, mode: "insensitive" },
+      brand: brand ?? null,
+      ...(exceptId ? { id: { not: exceptId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (existing) {
+    throw new Error(
+      `"${name}"${brand ? ` (${brand})` : ""} is already in your pantry.`,
+    );
+  }
+}
+
 export async function createFoodItem(input: unknown): Promise<FoodItemDTO> {
   const userId = await requireUserId();
   const data = foodItemSchema.parse(input);
+  await assertNotDuplicate(userId, data.name, data.brand ?? null);
 
   const item = await db.foodItem.create({
     data: {
@@ -24,7 +67,7 @@ export async function createFoodItem(input: unknown): Promise<FoodItemDTO> {
       brand: data.brand ?? null,
       category: data.category ?? null,
       barcode: data.barcode ?? null,
-      servingSizeG: data.servingSizeG ?? null,
+      ...servingFields(data),
       calories: data.calories,
       protein: data.protein,
       carbs: data.carbs,
@@ -84,6 +127,7 @@ export async function updateFoodItem(
 ): Promise<void> {
   const userId = await requireUserId();
   const data = foodItemSchema.parse(input);
+  await assertNotDuplicate(userId, data.name, data.brand ?? null, id);
 
   const result = await db.foodItem.updateMany({
     where: { id, userId },
@@ -92,7 +136,7 @@ export async function updateFoodItem(
       brand: data.brand ?? null,
       category: data.category ?? null,
       barcode: data.barcode ?? null,
-      servingSizeG: data.servingSizeG ?? null,
+      ...servingFields(data),
       calories: data.calories,
       protein: data.protein,
       carbs: data.carbs,

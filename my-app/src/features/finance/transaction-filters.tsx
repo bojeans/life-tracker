@@ -10,10 +10,14 @@ import {
   type TransactionFilter,
 } from "./filters";
 
-const TYPE_OPTIONS: { value: "ALL" | "INCOME" | "EXPENSE"; label: string }[] = [
+const TYPE_OPTIONS: {
+  value: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
+  label: string;
+}[] = [
   { value: "ALL", label: "All" },
   { value: "INCOME", label: "Income" },
   { value: "EXPENSE", label: "Expenses" },
+  { value: "TRANSFER", label: "Transfers" },
 ];
 
 export function TransactionFilters({

@@ -28,6 +28,16 @@ describe("parseTransactionsCsv", () => {
     expect(valid[1].description).toBeUndefined();
   });
 
+  it("accepts an explicit TRANSFER type", () => {
+    const csv = [
+      "date,type,amount,category",
+      "2026-06-05,TRANSFER,600,To Sharesies",
+    ].join("\n");
+
+    const { valid } = parseTransactionsCsv(csv);
+    expect(valid[0]).toMatchObject({ type: "TRANSFER", amount: 600 });
+  });
+
   it("infers type from the amount sign when no type column is present", () => {
     const csv = ["date,amount,category", "2026-06-01,-30,Food", "2026-06-02,1000,Pay"].join(
       "\n",
@@ -116,17 +126,38 @@ describe("parseWideTransactionsCsv", () => {
     expect((jan.date as Date).toISOString().slice(0, 10)).toBe("2026-01-01");
   });
 
-  it("attaches a paired '<x> desc' column as the description", () => {
+  it("promotes a paired '<x> desc' value to the category label", () => {
     const { valid } = parseWideTransactionsCsv(wide);
-    const other = valid.find((t) => t.category === "other")!;
-    expect(other.description).toBe("chemist warehouse");
-    expect(other.amount).toBe(113.38);
+    const labelled = valid.find((t) => t.category === "chemist warehouse")!;
+    expect(labelled.amount).toBe(113.38);
+    // The generic "other" bucket is replaced by the descriptive label.
+    expect(valid.some((t) => t.category === "other")).toBe(false);
+  });
+
+  it("classifies an 'other income' column as income", () => {
+    const csv = [",other income,dividends", "01/01/2026,80,"].join("\n");
+    const { valid } = parseWideTransactionsCsv(csv);
+    expect(valid[0]).toMatchObject({
+      type: "INCOME",
+      category: "other income",
+      amount: 80,
+    });
   });
 
   it("strips thousands separators from amounts", () => {
     const csv = [",salary", '01/01/2026,"1,891.52"'].join("\n");
     const { valid } = parseWideTransactionsCsv(csv);
     expect(valid[0]).toMatchObject({ type: "INCOME", amount: 1891.52 });
+  });
+
+  it("classifies a kiwisaver column as a transfer, not an expense", () => {
+    const csv = [",salary,kiwisaver", "01/01/2026,6800,204"].join("\n");
+    const { valid } = parseWideTransactionsCsv(csv);
+    expect(valid.find((t) => t.category === "kiwisaver")).toMatchObject({
+      type: "TRANSFER",
+      amount: 204,
+    });
+    expect(valid.find((t) => t.category === "salary")?.type).toBe("INCOME");
   });
 
   it("reports an invalid date without dropping other rows", () => {

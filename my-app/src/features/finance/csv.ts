@@ -38,16 +38,41 @@ const INCOME_CATEGORIES = new Set([
   "wage",
   "wages",
   "income",
+  "other income",
+  "misc income",
   "dividend",
   "dividends",
   "interest",
   "bonus",
   "refund",
   "rebate",
+  "reimbursement",
 ]);
 
 const isIncomeCategory = (name: string) =>
   INCOME_CATEGORIES.has(name.trim().toLowerCase());
+
+// Column names treated as own-account TRANSFERs (excluded from income/expense).
+// KiwiSaver/super are contributions to your own wealth, not spending.
+const TRANSFER_CATEGORIES = new Set([
+  "kiwisaver",
+  "kiwi saver",
+  "super",
+  "superannuation",
+  "transfer",
+  "to sharesies",
+  "to savings",
+  "to investments",
+]);
+
+const isTransferCategory = (name: string) =>
+  TRANSFER_CATEGORIES.has(name.trim().toLowerCase());
+
+const columnType = (name: string): "INCOME" | "EXPENSE" | "TRANSFER" => {
+  if (isIncomeCategory(name)) return "INCOME";
+  if (isTransferCategory(name)) return "TRANSFER";
+  return "EXPENSE";
+};
 
 // Parses a number that may contain currency symbols, thousands separators, or
 // surrounding whitespace. Returns NaN if it isn't numeric.
@@ -90,7 +115,7 @@ export function parseTransactionsCsv(csvText: string): CsvParseResult {
 
     const typeRaw = (raw.type ?? "").trim().toUpperCase();
     const type =
-      typeRaw === "INCOME" || typeRaw === "EXPENSE"
+      typeRaw === "INCOME" || typeRaw === "EXPENSE" || typeRaw === "TRANSFER"
         ? typeRaw
         : amountNum < 0
           ? "EXPENSE"
@@ -122,9 +147,11 @@ export function parseTransactionsCsv(csvText: string): CsvParseResult {
 /**
  * Parses a wide/matrix CSV: column A is the date, each remaining column header
  * is a category, and cells hold the amount for that category on that date. Most
- * cells are blank. A column named "<x> desc" (or "<x> description") supplies the
- * description for category "<x>" (e.g. "other desc" -> the "other" category).
- * Income vs expense is decided by column name (see INCOME_CATEGORIES).
+ * cells are blank. A column named "<x> desc" (or "<x> description") supplies a
+ * per-row LABEL that replaces the category for that entry (e.g. an "other" cell
+ * with "other desc" = "chemist warehouse" is categorised as "chemist warehouse"
+ * on the dashboards, not lumped under "other"). Income vs expense is decided by
+ * column name (see INCOME_CATEGORIES).
  */
 export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
   const parsed = Papa.parse<string[]>(csvText, {
@@ -143,8 +170,11 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
   // Build column metadata. Column 0 is the date. Description columns are paired
   // to their base category and excluded from the amount columns.
   const descColumnFor = new Map<string, number>(); // category(lowercased) -> col index
-  const amountColumns: { index: number; category: string; isIncome: boolean }[] =
-    [];
+  const amountColumns: {
+    index: number;
+    category: string;
+    type: "INCOME" | "EXPENSE" | "TRANSFER";
+  }[] = [];
 
   for (let i = 1; i < header.length; i++) {
     const name = header[i];
@@ -159,7 +189,7 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
     amountColumns.push({
       index: i,
       category: name,
-      isIncome: isIncomeCategory(name),
+      type: columnType(name),
     });
   }
 
@@ -188,15 +218,17 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
         continue;
       }
 
+      // A paired "<x> desc" cell becomes the category label for this row, so a
+      // generic "other" bucket reads as its real description on the dashboards.
       const descIndex = descColumnFor.get(col.category.toLowerCase());
-      const description =
+      const descValue =
         descIndex !== undefined ? (row[descIndex] ?? "").trim() : "";
+      const category = descValue || col.category;
 
       const result = transactionSchema.safeParse({
-        type: col.isIncome ? "INCOME" : "EXPENSE",
+        type: col.type,
         amount: Math.abs(amount),
-        category: col.category,
-        description: description || undefined,
+        category,
         date,
         currency: BASE_CURRENCY,
       });

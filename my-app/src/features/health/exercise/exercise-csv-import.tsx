@@ -34,9 +34,10 @@ export function ExerciseCsvImport() {
         <div>
           <p className="font-medium">Import from CSV</p>
           <p className="text-muted-foreground text-sm">
-            Columns: <code>date</code>, <code>activity</code>,{" "}
-            <code>calories</code>, and optionally <code>duration</code>,{" "}
-            <code>steps</code>, <code>distance</code>, <code>note</code>.
+            Columns: a date (first column, header optional) plus any of{" "}
+            <code>activity</code>, <code>duration</code>, <code>distance</code>,{" "}
+            <code>calories</code>, <code>steps</code>, <code>note</code>. Calories
+            are estimated from distance/duration when left blank.
           </p>
         </div>
         <input

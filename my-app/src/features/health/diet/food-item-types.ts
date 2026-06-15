@@ -6,6 +6,8 @@ export type FoodItemDTO = {
   brand: string | null;
   category: string | null;
   barcode: string | null;
+  servingAmount: number | null;
+  servingUnit: string | null;
   servingSizeG: number | null;
   calories: number;
   protein: number;

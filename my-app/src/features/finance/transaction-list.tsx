@@ -26,7 +26,16 @@ function formatAmount(t: TransactionDTO) {
     style: "currency",
     currency: t.currency,
   }).format(t.amount);
-  return t.type === "EXPENSE" ? `-${formatted}` : `+${formatted}`;
+  if (t.type === "EXPENSE") return `-${formatted}`;
+  if (t.type === "INCOME") return `+${formatted}`;
+  return `↔ ${formatted}`; // TRANSFER: neither in nor out
+}
+
+// Amount colour by type: red out, green in, muted for own-account transfers.
+function amountColor(type: TransactionDTO["type"]): string {
+  if (type === "EXPENSE") return "text-destructive";
+  if (type === "INCOME") return "text-green-600";
+  return "text-muted-foreground";
 }
 
 export function TransactionList({
@@ -119,13 +128,7 @@ export function TransactionList({
               </p>
             </div>
             <div className="flex items-center gap-1 sm:gap-3">
-              <span
-                className={
-                  t.type === "EXPENSE" ? "text-destructive" : "text-green-600"
-                }
-              >
-                {formatAmount(t)}
-              </span>
+              <span className={amountColor(t.type)}>{formatAmount(t)}</span>
               <Button variant="ghost" size="sm" onClick={() => setEditing(t)}>
                 Edit
               </Button>

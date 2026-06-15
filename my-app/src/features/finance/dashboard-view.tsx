@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTransactions } from "./actions";
 import { summarizeTransactions } from "./summary";
+import { incomeMetrics } from "./income-metrics";
 import { FinanceCharts } from "./finance-charts";
 import { TransactionFilters } from "./transaction-filters";
 import {
@@ -59,6 +60,7 @@ export function FinanceDashboardView({
   );
 
   const summary = useMemo(() => summarizeTransactions(filtered), [filtered]);
+  const metrics = useMemo(() => incomeMetrics(filtered), [filtered]);
   const recent = filtered.slice(0, 8);
 
   if (transactions.length === 0) {
@@ -106,7 +108,13 @@ export function FinanceDashboardView({
       )}
 
       {/* Summary cards */}
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section
+        className={
+          summary.totalTransfers > 0
+            ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            : "grid grid-cols-1 gap-3 sm:grid-cols-3"
+        }
+      >
         <SummaryCard label="Income" value={formatMoney(summary.totalIncome, viewCurrency)} accent="text-green-600" />
         <SummaryCard label="Expenses" value={formatMoney(summary.totalExpense, viewCurrency)} accent="text-destructive" />
         <SummaryCard
@@ -114,7 +122,47 @@ export function FinanceDashboardView({
           value={formatMoney(summary.net, viewCurrency)}
           accent={summary.net >= 0 ? "text-green-600" : "text-destructive"}
         />
+        {summary.totalTransfers > 0 && (
+          <SummaryCard
+            label="Transfers"
+            value={formatMoney(summary.totalTransfers, viewCurrency)}
+            accent="text-muted-foreground"
+          />
+        )}
       </section>
+
+      {metrics && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="font-semibold">Income &amp; savings</h2>
+            <p className="text-muted-foreground text-sm">
+              Based on gross income, with tax/student-loan as deductions and
+              KiwiSaver / investing as savings (not spending).
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <SummaryCard
+              label="Gross income"
+              value={formatMoney(metrics.grossIncome, viewCurrency)}
+              accent="text-green-600"
+            />
+            <SummaryCard
+              label={`Tax & deductions (${Math.round(metrics.effectiveTaxRate * 100)}%)`}
+              value={formatMoney(metrics.deductions, viewCurrency)}
+              accent="text-destructive"
+            />
+            <SummaryCard
+              label="Take-home"
+              value={formatMoney(metrics.takeHome, viewCurrency)}
+            />
+            <SummaryCard
+              label={`Savings rate`}
+              value={`${Math.round(metrics.savingsRate * 100)}%`}
+              accent={metrics.savingsRate >= 0 ? "text-green-600" : "text-destructive"}
+            />
+          </div>
+        </section>
+      )}
 
       <FinanceCharts transactions={filtered} currency={viewCurrency} />
 
@@ -143,10 +191,14 @@ export function FinanceDashboardView({
                 </div>
                 <span
                   className={
-                    t.type === "EXPENSE" ? "text-destructive" : "text-green-600"
+                    t.type === "EXPENSE"
+                      ? "text-destructive"
+                      : t.type === "INCOME"
+                        ? "text-green-600"
+                        : "text-muted-foreground"
                   }
                 >
-                  {t.type === "EXPENSE" ? "-" : "+"}
+                  {t.type === "EXPENSE" ? "-" : t.type === "INCOME" ? "+" : "↔ "}
                   {formatMoney(t.amount, viewCurrency)}
                 </span>
               </li>
@@ -161,11 +213,11 @@ export function FinanceDashboardView({
 function SummaryCard({
   label,
   value,
-  accent,
+  accent = "",
 }: {
   label: string;
   value: string;
-  accent: string;
+  accent?: string;
 }) {
   return (
     <div className="rounded-lg border p-4">

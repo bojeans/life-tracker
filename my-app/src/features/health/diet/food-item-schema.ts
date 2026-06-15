@@ -1,7 +1,10 @@
 import { z } from "zod";
+import { UNITS } from "./units";
 
 const emptyToUndefined = (v: unknown) =>
   v === "" || v === null ? undefined : v;
+
+const UNIT_VALUES = UNITS.map((u) => u.value) as [string, ...string[]];
 
 const macro = z.coerce
   .number({ error: "Must be a number" })
@@ -26,7 +29,13 @@ export const foodItemSchema = z.object({
   brand: optionalText(80),
   category: optionalText(60),
   barcode: optionalText(64),
-  servingSizeG: optionalNumber,
+  // A serving is an amount + unit (e.g. 1 "tbsp"). The gram equivalent is
+  // derived server-side; clients send amount/unit, not grams.
+  servingAmount: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().positive().max(100_000).optional(),
+  ),
+  servingUnit: z.preprocess(emptyToUndefined, z.enum(UNIT_VALUES).optional()),
   calories: macro,
   protein: macro,
   carbs: macro,
