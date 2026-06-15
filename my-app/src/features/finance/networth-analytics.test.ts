@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   latestBalances,
   netWorthTotal,
+  totalAssets,
+  totalLiabilities,
   compositionByClass,
   netWorthOverTime,
 } from "./networth-analytics";
@@ -9,9 +11,9 @@ import type { AccountDTO, BalanceSnapshotDTO } from "./networth-types";
 import type { Rates } from "./currency";
 
 const accounts: AccountDTO[] = [
-  { id: "kb", name: "Kiwibank", institution: null, assetClass: "CASH", currency: "NZD" },
-  { id: "ss", name: "Sharesies", institution: null, assetClass: "SHARES", currency: "NZD" },
-  { id: "cba", name: "CBA", institution: null, assetClass: "CASH", currency: "AUD" },
+  { id: "kb", name: "Kiwibank", institution: null, kind: "ASSET", assetClass: "CASH", currency: "NZD" },
+  { id: "ss", name: "Sharesies", institution: null, kind: "ASSET", assetClass: "SHARES", currency: "NZD" },
+  { id: "cba", name: "CBA", institution: null, kind: "ASSET", assetClass: "CASH", currency: "AUD" },
 ];
 
 function snap(accountId: string, date: string, balance: number): BalanceSnapshotDTO {
@@ -56,6 +58,42 @@ describe("netWorthTotal + compositionByClass", () => {
       { assetClass: "SHARES", total: 5000 },
       { assetClass: "CASH", total: 2200 }, // 1200 + 1000
     ]);
+  });
+});
+
+describe("liabilities", () => {
+  const withLoan: AccountDTO[] = [
+    ...accounts,
+    { id: "loan", name: "Student loan", institution: null, kind: "LIABILITY", assetClass: "CASH", currency: "NZD" },
+  ];
+
+  it("subtracts liabilities from net worth but not from assets/composition", () => {
+    const balances = latestBalances(
+      withLoan,
+      [
+        snap("kb", "2026-06-01", 1200),
+        snap("ss", "2026-06-01", 5000),
+        snap("loan", "2026-06-01", 9000), // owed
+      ],
+      "NZD",
+      rates,
+    );
+
+    expect(totalAssets(balances)).toBe(6200);
+    expect(totalLiabilities(balances)).toBe(9000);
+    expect(netWorthTotal(balances)).toBe(-2800); // 6200 − 9000
+    // Composition is assets only — the loan is not a slice.
+    expect(compositionByClass(balances).some((s) => s.total === 9000)).toBe(false);
+  });
+
+  it("subtracts the liability across the over-time series", () => {
+    const points = netWorthOverTime(
+      withLoan,
+      [snap("kb", "2026-05-01", 10000), snap("loan", "2026-06-01", 9000)],
+      "NZD",
+      rates,
+    );
+    expect(points.map((p) => p.total)).toEqual([10000, 1000]); // 10000, then −9000
   });
 });
 

@@ -104,11 +104,13 @@ const demoFoodItems = [
 // Net-worth accounts with a few monthly balance snapshots (oldest → newest),
 // showing wealth trending up across cash, shares, super and crypto.
 const demoNetWorth = [
-  { name: "Kiwibank", institution: "Kiwibank", assetClass: "CASH" as const, currency: "NZD", balances: [7800, 8200, 8600, 9000] },
-  { name: "Sharesies", institution: "Sharesies", assetClass: "SHARES" as const, currency: "NZD", balances: [14000, 15200, 16100, 17400] },
-  { name: "KiwiSaver", institution: "Sharesies", assetClass: "SUPER" as const, currency: "NZD", balances: [31000, 32200, 33100, 34500] },
-  { name: "crypto.com", institution: "crypto.com", assetClass: "CRYPTO" as const, currency: "NZD", balances: [3200, 2900, 3600, 4100] },
-  { name: "CBA", institution: "Commonwealth Bank", assetClass: "CASH" as const, currency: "AUD", balances: [2200, 2000, 2500, 2300] },
+  { name: "Kiwibank", institution: "Kiwibank", kind: "ASSET" as const, assetClass: "CASH" as const, currency: "NZD", balances: [7800, 8200, 8600, 9000] },
+  { name: "Sharesies", institution: "Sharesies", kind: "ASSET" as const, assetClass: "SHARES" as const, currency: "NZD", balances: [14000, 15200, 16100, 17400] },
+  { name: "KiwiSaver", institution: "Sharesies", kind: "ASSET" as const, assetClass: "SUPER" as const, currency: "NZD", balances: [31000, 32200, 33100, 34500] },
+  { name: "crypto.com", institution: "crypto.com", kind: "ASSET" as const, assetClass: "CRYPTO" as const, currency: "NZD", balances: [3200, 2900, 3600, 4100] },
+  { name: "CBA", institution: "Commonwealth Bank", kind: "ASSET" as const, assetClass: "CASH" as const, currency: "AUD", balances: [2200, 2000, 2500, 2300] },
+  // A liability — the balance owed shrinks as it's paid down.
+  { name: "Student loan", institution: "IRD", kind: "LIABILITY" as const, assetClass: "CASH" as const, currency: "NZD", balances: [9600, 9400, 9200, 9000] },
 ];
 const SNAPSHOT_DAYS_AGO = [90, 60, 30, 0];
 
@@ -223,6 +225,7 @@ export async function seedDemoData(db: PrismaClient, userId: string) {
         userId,
         name: acc.name,
         institution: acc.institution,
+        kind: acc.kind,
         assetClass: acc.assetClass,
         currency: acc.currency,
         snapshots: {

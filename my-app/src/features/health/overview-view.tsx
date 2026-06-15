@@ -15,23 +15,30 @@ import {
 import { baselineTdee } from "./energy";
 import { dailyEnergyBalance, summarizeBalance } from "./energy-balance";
 import { weightChange } from "./weight/analytics";
+import { classifyBloodPressure } from "./blood-pressure/analytics";
+import { CategoryBadge } from "./blood-pressure/category-badge";
 import type { DietEntryDTO } from "./diet/types";
 import type { ExerciseEntryDTO } from "./exercise/types";
 import type { WeightEntryDTO } from "./weight/types";
+import type { BloodPressureEntryDTO } from "./blood-pressure/types";
 import type { ProfileDTO } from "./profile/types";
 
 export function OverviewView({
   diet,
   exercise,
   weights,
+  bloodPressure,
   profile,
 }: {
   diet: DietEntryDTO[];
   exercise: ExerciseEntryDTO[];
   weights: WeightEntryDTO[];
+  bloodPressure: BloodPressureEntryDTO[];
   profile: ProfileDTO | null;
 }) {
   const latestWeightKg = weights[0]?.weightKg ?? null;
+  // entries are date-desc, so [0] is the most recent reading.
+  const latestBp = bloodPressure[0] ?? null;
 
   const baseline = useMemo(
     () =>
@@ -89,6 +96,18 @@ export function OverviewView({
           }
         />
       </section>
+
+      {latestBp && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">
+          <span className="font-medium">
+            Latest blood pressure {latestBp.systolic}/{latestBp.diastolic}
+            <span className="text-muted-foreground font-normal"> mmHg</span>
+          </span>
+          <CategoryBadge
+            category={classifyBloodPressure(latestBp.systolic, latestBp.diastolic)}
+          />
+        </div>
+      )}
 
       {actual && (
         <p className="text-muted-foreground rounded-lg border p-3 text-sm">

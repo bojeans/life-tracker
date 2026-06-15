@@ -34,6 +34,7 @@ export async function createAccount(input: unknown): Promise<AccountDTO> {
       userId,
       name: data.name,
       institution: data.institution ?? null,
+      kind: data.kind,
       assetClass: data.assetClass,
       currency: data.currency,
     },
@@ -53,6 +54,7 @@ export async function updateAccount(
     data: {
       name: data.name,
       institution: data.institution ?? null,
+      kind: data.kind,
       assetClass: data.assetClass,
       currency: data.currency,
     },

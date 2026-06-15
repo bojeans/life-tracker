@@ -11,6 +11,9 @@ export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
   SUPER: "Super / KiwiSaver",
 };
 
+export const ACCOUNT_KINDS = ["ASSET", "LIABILITY"] as const;
+export type AccountKind = (typeof ACCOUNT_KINDS)[number];
+
 const emptyToUndefined = (v: unknown) =>
   v === "" || v === null ? undefined : v;
 
@@ -29,6 +32,7 @@ export const accountSchema = z.object({
     emptyToUndefined,
     z.string().trim().max(60).optional(),
   ),
+  kind: z.enum(ACCOUNT_KINDS).default("ASSET"),
   assetClass: z.enum(ASSET_CLASSES, { error: "Pick an asset class" }),
   currency: z.enum(CURRENCY_CODES).default(BASE_CURRENCY),
 });

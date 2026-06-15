@@ -1,11 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { transactionSchema, TRANSACTION_TYPES } from "./transaction-schema";
-import { createTransaction, updateTransaction } from "./actions";
+import { createTransaction, updateTransaction, getTransactions } from "./actions";
+import { availableCategories } from "./filters";
 import type { TransactionDTO } from "./types";
 import { BASE_CURRENCY, SUPPORTED_CURRENCIES } from "./currency";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,23 @@ type FormInput = z.input<typeof transactionSchema>;
 type FormOutput = z.output<typeof transactionSchema>;
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+// Seeded suggestions so the income/tax/transfer workflow is discoverable even on
+// a fresh account; merged with the user's own categories.
+const SUGGESTED_CATEGORIES = [
+  "Salary",
+  "Dividends",
+  "Tax",
+  "Student loan",
+  "KiwiSaver",
+  "To Sharesies",
+  "Rent",
+  "Groceries",
+  "Utilities",
+  "Transport",
+  "Dining",
+  "Subscriptions",
+];
 
 function blankDefaults(): FormInput {
   return {
@@ -48,6 +67,21 @@ export function TransactionForm({
 }) {
   const queryClient = useQueryClient();
   const isEdit = Boolean(transaction);
+
+  // Categories for autocomplete: the user's existing ones plus seeded
+  // suggestions, deduped (case-insensitively) and sorted.
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["transactions"],
+    queryFn: () => getTransactions(),
+  });
+  const categoryOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const c of [...SUGGESTED_CATEGORIES, ...availableCategories(transactions)]) {
+      const key = c.toLowerCase();
+      if (!seen.has(key)) seen.set(key, c);
+    }
+    return [...seen.values()].sort((a, b) => a.localeCompare(b));
+  }, [transactions]);
 
   const {
     register,
@@ -131,7 +165,17 @@ export function TransactionForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="category">Category</Label>
-        <Input id="category" placeholder="e.g. Groceries" {...register("category")} />
+        <Input
+          id="category"
+          list="tx-categories"
+          placeholder="e.g. Groceries"
+          {...register("category")}
+        />
+        <datalist id="tx-categories">
+          {categoryOptions.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
         {errors.category && (
           <p className="text-destructive text-sm">{errors.category.message}</p>
         )}

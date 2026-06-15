@@ -2,6 +2,7 @@ export type AccountDTO = {
   id: string;
   name: string;
   institution: string | null;
+  kind: string;
   assetClass: string;
   currency: string;
 };

@@ -164,7 +164,11 @@ export function FinanceDashboardView({
         </section>
       )}
 
-      <FinanceCharts transactions={filtered} currency={viewCurrency} />
+      <FinanceCharts
+        transactions={filtered}
+        currency={viewCurrency}
+        type={filter.type ?? "ALL"}
+      />
 
       {/* Recent transactions (read-only) */}
       <section className="space-y-3">

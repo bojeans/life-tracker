@@ -48,3 +48,19 @@ export function summarizeTransactions(
     byCategory,
   };
 }
+
+// Category totals for a single transaction type (income, expense or transfer),
+// largest first. Powers the dashboard's per-type pie charts.
+export function categoryTotals(
+  transactions: TransactionDTO[],
+  type: TransactionDTO["type"],
+): CategoryTotal[] {
+  const map = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.type !== type) continue;
+    map.set(t.category, (map.get(t.category) ?? 0) + t.amount);
+  }
+  return [...map.entries()]
+    .map(([category, total]) => ({ category, total: round2(total) }))
+    .sort((a, b) => b.total - a.total);
+}

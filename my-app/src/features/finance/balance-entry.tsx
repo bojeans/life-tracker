@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { balanceEntrySchema } from "./networth-schema";
 import { recordBalances } from "./networth-actions";
 import type { AccountDTO } from "./networth-types";
+import { convert, formatMoney, type Rates } from "./currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,10 +15,14 @@ const today = () => new Date().toISOString().slice(0, 10);
 export function BalanceEntry({
   accounts,
   latest,
+  base,
+  rates,
 }: {
   accounts: AccountDTO[];
   // Latest known balance per account (own currency), to prefill the inputs.
   latest: Record<string, number>;
+  base: string;
+  rates: Rates | null;
 }) {
   const queryClient = useQueryClient();
   const [date, setDate] = useState(today());
@@ -44,6 +49,17 @@ export function BalanceEntry({
     },
     onError: (e: Error) => setError(e.message),
   });
+
+  // Live "≈ $Y NZD" for an account held in another currency, so you see the
+  // base-currency value as you type. Null for base-currency accounts, empty
+  // input, or before FX rates have loaded.
+  function baseHint(account: AccountDTO): string | null {
+    if (account.currency === base || !rates) return null;
+    const raw = values[account.id];
+    const n = Number(raw);
+    if (!raw?.trim() || !Number.isFinite(n)) return null;
+    return `≈ ${formatMoney(convert(n, account.currency, base, rates), base)}`;
+  }
 
   if (accounts.length === 0) return null;
 
@@ -84,18 +100,25 @@ export function BalanceEntry({
               {a.name}
               <span className="text-muted-foreground"> · {a.currency}</span>
             </span>
-            <Input
-              type="number"
-              step="any"
-              inputMode="decimal"
-              aria-label={`${a.name} balance`}
-              placeholder="0.00"
-              className="w-32"
-              value={values[a.id] ?? ""}
-              onChange={(e) =>
-                setValues((v) => ({ ...v, [a.id]: e.target.value }))
-              }
-            />
+            <div className="flex flex-col items-end">
+              <Input
+                type="number"
+                step="any"
+                inputMode="decimal"
+                aria-label={`${a.name} balance`}
+                placeholder="0.00"
+                className="w-32"
+                value={values[a.id] ?? ""}
+                onChange={(e) =>
+                  setValues((v) => ({ ...v, [a.id]: e.target.value }))
+                }
+              />
+              {baseHint(a) && (
+                <span className="text-muted-foreground mt-0.5 text-xs">
+                  {baseHint(a)}
+                </span>
+              )}
+            </div>
           </li>
         ))}
       </ul>

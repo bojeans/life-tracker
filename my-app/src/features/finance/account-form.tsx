@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ import {
   ASSET_CLASSES,
   ASSET_CLASS_LABELS,
 } from "./networth-schema";
+import { cn } from "@/lib/utils";
 import { createAccount, updateAccount } from "./networth-actions";
 import type { AccountDTO } from "./networth-types";
 import { SUPPORTED_CURRENCIES, BASE_CURRENCY } from "./currency";
@@ -23,6 +25,7 @@ function defaults(account?: AccountDTO): FormInput {
   return {
     name: account?.name ?? "",
     institution: account?.institution ?? "",
+    kind: (account?.kind ?? "ASSET") as FormInput["kind"],
     assetClass: (account?.assetClass ?? "CASH") as FormInput["assetClass"],
     currency: (account?.currency ?? BASE_CURRENCY) as FormInput["currency"],
   };
@@ -47,6 +50,12 @@ export function AccountForm({
     resolver: zodResolver(accountSchema),
     defaultValues: defaults(account),
   });
+
+  // Track kind locally (synced from the select's onChange) to toggle the asset
+  // class field, rather than RHF's watch() which the React Compiler can't
+  // memoize.
+  const [kind, setKind] = useState(account?.kind ?? "ASSET");
+  const isLiability = kind === "LIABILITY";
 
   const mutation = useMutation({
     mutationFn: async (values: FormOutput) => {
@@ -74,17 +83,32 @@ export function AccountForm({
         )}
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="acc-institution">Institution (optional)</Label>
-        <Input
-          id="acc-institution"
-          placeholder="e.g. Sharesies"
-          {...register("institution")}
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="acc-institution">Institution (optional)</Label>
+          <Input
+            id="acc-institution"
+            placeholder="e.g. Sharesies"
+            {...register("institution")}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="acc-kind">Type</Label>
+          <select
+            id="acc-kind"
+            {...register("kind", { onChange: (e) => setKind(e.target.value) })}
+            className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
+          >
+            <option value="ASSET">Asset</option>
+            <option value="LIABILITY">Liability (debt)</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
+        {/* Asset class is meaningless for a liability — kept mounted (so a
+            value still submits) but hidden when the account is a debt. */}
+        <div className={cn("space-y-1.5", isLiability && "hidden")}>
           <Label htmlFor="acc-class">Asset class</Label>
           <select
             id="acc-class"
