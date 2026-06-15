@@ -13,6 +13,16 @@ const db = new PrismaClient({
 });
 
 async function main() {
+  // Show which database we're actually pointed at (host only, no secret) so a
+  // wrong/empty branch is obvious before anything runs.
+  let host = "unknown";
+  try {
+    host = new URL(process.env.DATABASE_URL ?? "").host;
+  } catch {
+    /* ignore */
+  }
+  console.log(`Connecting to: ${host}`);
+
   const rows = await db.transaction.findMany({
     where: {
       category: { equals: "other", mode: "insensitive" },
