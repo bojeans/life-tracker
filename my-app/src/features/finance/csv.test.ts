@@ -28,6 +28,16 @@ describe("parseTransactionsCsv", () => {
     expect(valid[1].description).toBeUndefined();
   });
 
+  it("accepts an explicit TRANSFER type", () => {
+    const csv = [
+      "date,type,amount,category",
+      "2026-06-05,TRANSFER,600,To Sharesies",
+    ].join("\n");
+
+    const { valid } = parseTransactionsCsv(csv);
+    expect(valid[0]).toMatchObject({ type: "TRANSFER", amount: 600 });
+  });
+
   it("infers type from the amount sign when no type column is present", () => {
     const csv = ["date,amount,category", "2026-06-01,-30,Food", "2026-06-02,1000,Pay"].join(
       "\n",

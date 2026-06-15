@@ -21,10 +21,25 @@ describe("summarizeTransactions", () => {
     expect(summarizeTransactions([])).toEqual({
       totalIncome: 0,
       totalExpense: 0,
+      totalTransfers: 0,
       net: 0,
       count: 0,
       byCategory: [],
     });
+  });
+
+  it("excludes transfers from income, expense, net and categories", () => {
+    const result = summarizeTransactions([
+      txn({ type: "INCOME", amount: 5000, category: "Salary" }),
+      txn({ type: "EXPENSE", amount: 200, category: "Rent" }),
+      txn({ type: "TRANSFER", amount: 600, category: "To Sharesies" }),
+    ]);
+
+    expect(result.totalIncome).toBe(5000);
+    expect(result.totalExpense).toBe(200);
+    expect(result.totalTransfers).toBe(600);
+    expect(result.net).toBe(4800); // transfer not counted
+    expect(result.byCategory).toEqual([{ category: "Rent", total: 200 }]);
   });
 
   it("totals income and expense and computes net", () => {

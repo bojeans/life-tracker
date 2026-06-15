@@ -106,7 +106,13 @@ export function FinanceDashboardView({
       )}
 
       {/* Summary cards */}
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section
+        className={
+          summary.totalTransfers > 0
+            ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            : "grid grid-cols-1 gap-3 sm:grid-cols-3"
+        }
+      >
         <SummaryCard label="Income" value={formatMoney(summary.totalIncome, viewCurrency)} accent="text-green-600" />
         <SummaryCard label="Expenses" value={formatMoney(summary.totalExpense, viewCurrency)} accent="text-destructive" />
         <SummaryCard
@@ -114,6 +120,13 @@ export function FinanceDashboardView({
           value={formatMoney(summary.net, viewCurrency)}
           accent={summary.net >= 0 ? "text-green-600" : "text-destructive"}
         />
+        {summary.totalTransfers > 0 && (
+          <SummaryCard
+            label="Transfers"
+            value={formatMoney(summary.totalTransfers, viewCurrency)}
+            accent="text-muted-foreground"
+          />
+        )}
       </section>
 
       <FinanceCharts transactions={filtered} currency={viewCurrency} />
@@ -143,10 +156,14 @@ export function FinanceDashboardView({
                 </div>
                 <span
                   className={
-                    t.type === "EXPENSE" ? "text-destructive" : "text-green-600"
+                    t.type === "EXPENSE"
+                      ? "text-destructive"
+                      : t.type === "INCOME"
+                        ? "text-green-600"
+                        : "text-muted-foreground"
                   }
                 >
-                  {t.type === "EXPENSE" ? "-" : "+"}
+                  {t.type === "EXPENSE" ? "-" : t.type === "INCOME" ? "+" : "↔ "}
                   {formatMoney(t.amount, viewCurrency)}
                 </span>
               </li>

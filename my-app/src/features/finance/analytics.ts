@@ -18,8 +18,9 @@ export function monthlyTotals(transactions: TransactionDTO[]): MonthlyPoint[] {
   for (const t of transactions) {
     const month = t.date.slice(0, 7); // ISO date -> "YYYY-MM"
     const entry = map.get(month) ?? { income: 0, expense: 0 };
+    // TRANSFERs are own-account moves — excluded from the income/expense bars.
     if (t.type === "INCOME") entry.income += t.amount;
-    else entry.expense += t.amount;
+    else if (t.type === "EXPENSE") entry.expense += t.amount;
     map.set(month, entry);
   }
 

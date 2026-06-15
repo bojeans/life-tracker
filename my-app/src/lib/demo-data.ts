@@ -32,6 +32,10 @@ const demoTransactions = [
   { type: "EXPENSE", amount: 56.8, category: "Dining", description: "Dinner out", daysAgo: 6 },
   { type: "EXPENSE", amount: 22.99, category: "Subscriptions", description: "Streaming", daysAgo: 10 },
   { type: "EXPENSE", amount: 240, category: "Utilities", description: "Electricity", daysAgo: 9 },
+  // Own-account move (bank → Sharesies): a TRANSFER, so it's excluded from
+  // income/expense and shown separately.
+  { type: "TRANSFER", amount: 600, category: "To Sharesies", description: "Investing", daysAgo: 26 },
+  { type: "TRANSFER", amount: 600, category: "To Sharesies", description: "Investing", daysAgo: 2 },
 ] as const;
 
 const demoWeights = [

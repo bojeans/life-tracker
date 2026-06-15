@@ -84,6 +84,9 @@ model VerificationToken {
 enum TransactionType {
   INCOME
   EXPENSE
+  // A move between the user's own accounts (e.g. bank → Sharesies). Excluded
+  // from income/expense/net totals — it doesn't change net worth.
+  TRANSFER
 }
 
 // Where a transaction originated. MANUAL is the default; CSV and SHARESIGHT

@@ -90,7 +90,7 @@ export function parseTransactionsCsv(csvText: string): CsvParseResult {
 
     const typeRaw = (raw.type ?? "").trim().toUpperCase();
     const type =
-      typeRaw === "INCOME" || typeRaw === "EXPENSE"
+      typeRaw === "INCOME" || typeRaw === "EXPENSE" || typeRaw === "TRANSFER"
         ? typeRaw
         : amountNum < 0
           ? "EXPENSE"

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { BASE_CURRENCY } from "./currency";
 
-export const TRANSACTION_TYPES = ["INCOME", "EXPENSE"] as const;
+export const TRANSACTION_TYPES = ["INCOME", "EXPENSE", "TRANSFER"] as const;
 
 export const transactionSchema = z.object({
   type: z.enum(TRANSACTION_TYPES),
