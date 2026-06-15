@@ -19,8 +19,16 @@ const daysAgoUtc = (n: number) => {
 };
 
 const demoTransactions = [
-  { type: "INCOME", amount: 5200, category: "Salary", description: "Monthly pay", daysAgo: 28 },
-  { type: "INCOME", amount: 5200, category: "Salary", description: "Monthly pay", daysAgo: 0 },
+  // Pay is recorded gross, with PAYE/student-loan as deductions and KiwiSaver as
+  // a transfer to wealth — so the dashboard can show effective tax + savings rate.
+  { type: "INCOME", amount: 6800, category: "Salary", description: "Gross pay", daysAgo: 28 },
+  { type: "EXPENSE", amount: 1300, category: "Tax", description: "PAYE", daysAgo: 28 },
+  { type: "EXPENSE", amount: 480, category: "Student loan", description: "Repayment", daysAgo: 28 },
+  { type: "TRANSFER", amount: 204, category: "KiwiSaver", description: "3% contribution", daysAgo: 28 },
+  { type: "INCOME", amount: 6800, category: "Salary", description: "Gross pay", daysAgo: 0 },
+  { type: "EXPENSE", amount: 1300, category: "Tax", description: "PAYE", daysAgo: 0 },
+  { type: "EXPENSE", amount: 480, category: "Student loan", description: "Repayment", daysAgo: 0 },
+  { type: "TRANSFER", amount: 204, category: "KiwiSaver", description: "3% contribution", daysAgo: 0 },
   { type: "INCOME", amount: 320.5, category: "Dividends", description: "ETF distribution", daysAgo: 14 },
   { type: "EXPENSE", amount: 1850, category: "Rent", description: "Apartment", daysAgo: 27 },
   { type: "EXPENSE", amount: 1850, category: "Rent", description: "Apartment", daysAgo: 1 },

@@ -108,5 +108,3 @@ export async function deleteSnapshot(id: string): Promise<void> {
   await db.balanceSnapshot.deleteMany({ where: { id, userId } });
   revalidatePath("/finance/networth");
 }
-
-export type { BalanceSnapshotDTO };

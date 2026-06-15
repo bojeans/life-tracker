@@ -52,6 +52,28 @@ const INCOME_CATEGORIES = new Set([
 const isIncomeCategory = (name: string) =>
   INCOME_CATEGORIES.has(name.trim().toLowerCase());
 
+// Column names treated as own-account TRANSFERs (excluded from income/expense).
+// KiwiSaver/super are contributions to your own wealth, not spending.
+const TRANSFER_CATEGORIES = new Set([
+  "kiwisaver",
+  "kiwi saver",
+  "super",
+  "superannuation",
+  "transfer",
+  "to sharesies",
+  "to savings",
+  "to investments",
+]);
+
+const isTransferCategory = (name: string) =>
+  TRANSFER_CATEGORIES.has(name.trim().toLowerCase());
+
+const columnType = (name: string): "INCOME" | "EXPENSE" | "TRANSFER" => {
+  if (isIncomeCategory(name)) return "INCOME";
+  if (isTransferCategory(name)) return "TRANSFER";
+  return "EXPENSE";
+};
+
 // Parses a number that may contain currency symbols, thousands separators, or
 // surrounding whitespace. Returns NaN if it isn't numeric.
 function parseAmount(raw: string): number {
@@ -148,8 +170,11 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
   // Build column metadata. Column 0 is the date. Description columns are paired
   // to their base category and excluded from the amount columns.
   const descColumnFor = new Map<string, number>(); // category(lowercased) -> col index
-  const amountColumns: { index: number; category: string; isIncome: boolean }[] =
-    [];
+  const amountColumns: {
+    index: number;
+    category: string;
+    type: "INCOME" | "EXPENSE" | "TRANSFER";
+  }[] = [];
 
   for (let i = 1; i < header.length; i++) {
     const name = header[i];
@@ -164,7 +189,7 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
     amountColumns.push({
       index: i,
       category: name,
-      isIncome: isIncomeCategory(name),
+      type: columnType(name),
     });
   }
 
@@ -201,7 +226,7 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
       const category = descValue || col.category;
 
       const result = transactionSchema.safeParse({
-        type: col.isIncome ? "INCOME" : "EXPENSE",
+        type: col.type,
         amount: Math.abs(amount),
         category,
         date,

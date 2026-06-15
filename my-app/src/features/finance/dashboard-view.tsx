@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTransactions } from "./actions";
 import { summarizeTransactions } from "./summary";
+import { incomeMetrics } from "./income-metrics";
 import { FinanceCharts } from "./finance-charts";
 import { TransactionFilters } from "./transaction-filters";
 import {
@@ -59,6 +60,7 @@ export function FinanceDashboardView({
   );
 
   const summary = useMemo(() => summarizeTransactions(filtered), [filtered]);
+  const metrics = useMemo(() => incomeMetrics(filtered), [filtered]);
   const recent = filtered.slice(0, 8);
 
   if (transactions.length === 0) {
@@ -129,6 +131,39 @@ export function FinanceDashboardView({
         )}
       </section>
 
+      {metrics && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="font-semibold">Income &amp; savings</h2>
+            <p className="text-muted-foreground text-sm">
+              Based on gross income, with tax/student-loan as deductions and
+              KiwiSaver / investing as savings (not spending).
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <SummaryCard
+              label="Gross income"
+              value={formatMoney(metrics.grossIncome, viewCurrency)}
+              accent="text-green-600"
+            />
+            <SummaryCard
+              label={`Tax & deductions (${Math.round(metrics.effectiveTaxRate * 100)}%)`}
+              value={formatMoney(metrics.deductions, viewCurrency)}
+              accent="text-destructive"
+            />
+            <SummaryCard
+              label="Take-home"
+              value={formatMoney(metrics.takeHome, viewCurrency)}
+            />
+            <SummaryCard
+              label={`Savings rate`}
+              value={`${Math.round(metrics.savingsRate * 100)}%`}
+              accent={metrics.savingsRate >= 0 ? "text-green-600" : "text-destructive"}
+            />
+          </div>
+        </section>
+      )}
+
       <FinanceCharts transactions={filtered} currency={viewCurrency} />
 
       {/* Recent transactions (read-only) */}
@@ -178,11 +213,11 @@ export function FinanceDashboardView({
 function SummaryCard({
   label,
   value,
-  accent,
+  accent = "",
 }: {
   label: string;
   value: string;
-  accent: string;
+  accent?: string;
 }) {
   return (
     <div className="rounded-lg border p-4">

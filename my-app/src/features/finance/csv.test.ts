@@ -150,6 +150,16 @@ describe("parseWideTransactionsCsv", () => {
     expect(valid[0]).toMatchObject({ type: "INCOME", amount: 1891.52 });
   });
 
+  it("classifies a kiwisaver column as a transfer, not an expense", () => {
+    const csv = [",salary,kiwisaver", "01/01/2026,6800,204"].join("\n");
+    const { valid } = parseWideTransactionsCsv(csv);
+    expect(valid.find((t) => t.category === "kiwisaver")).toMatchObject({
+      type: "TRANSFER",
+      amount: 204,
+    });
+    expect(valid.find((t) => t.category === "salary")?.type).toBe("INCOME");
+  });
+
   it("reports an invalid date without dropping other rows", () => {
     const csv = [",groceries", "31/31/2026,10", "02/01/2026,20"].join("\n");
     const { valid, errors } = parseWideTransactionsCsv(csv);
