@@ -93,8 +93,20 @@ const demoFoodItems = [
   { name: "Brown rice (cooked)", brand: null, category: "Grains", calories: 123, protein: 2.7, carbs: 26, fat: 1, fiber: 1.8, sugar: null },
 ];
 
+// Net-worth accounts with a few monthly balance snapshots (oldest → newest),
+// showing wealth trending up across cash, shares, super and crypto.
+const demoNetWorth = [
+  { name: "Kiwibank", institution: "Kiwibank", assetClass: "CASH" as const, currency: "NZD", balances: [7800, 8200, 8600, 9000] },
+  { name: "Sharesies", institution: "Sharesies", assetClass: "SHARES" as const, currency: "NZD", balances: [14000, 15200, 16100, 17400] },
+  { name: "KiwiSaver", institution: "Sharesies", assetClass: "SUPER" as const, currency: "NZD", balances: [31000, 32200, 33100, 34500] },
+  { name: "crypto.com", institution: "crypto.com", assetClass: "CRYPTO" as const, currency: "NZD", balances: [3200, 2900, 3600, 4100] },
+  { name: "CBA", institution: "Commonwealth Bank", assetClass: "CASH" as const, currency: "AUD", balances: [2200, 2000, 2500, 2300] },
+];
+const SNAPSHOT_DAYS_AGO = [90, 60, 30, 0];
+
 export const DEMO_COUNTS = {
   transactions: demoTransactions.length,
+  accounts: demoNetWorth.length,
   weights: demoWeights.length,
   bloodPressure: demoBloodPressure.length,
   dietDays: demoDietTotals.length,
@@ -106,6 +118,7 @@ export const DEMO_COUNTS = {
 // seed and from the in-app reset button.
 export async function seedDemoData(db: PrismaClient, userId: string) {
   await db.transaction.deleteMany({ where: { userId } });
+  await db.wealthAccount.deleteMany({ where: { userId } }); // snapshots cascade
   await db.weightEntry.deleteMany({ where: { userId } });
   await db.bloodPressureEntry.deleteMany({ where: { userId } });
   await db.dietEntry.deleteMany({ where: { userId } });
@@ -193,4 +206,25 @@ export async function seedDemoData(db: PrismaClient, userId: string) {
       source: "MANUAL" as const,
     })),
   });
+
+  // Accounts + their balance snapshots (nested create so each snapshot links to
+  // its new account id).
+  for (const acc of demoNetWorth) {
+    await db.wealthAccount.create({
+      data: {
+        userId,
+        name: acc.name,
+        institution: acc.institution,
+        assetClass: acc.assetClass,
+        currency: acc.currency,
+        snapshots: {
+          create: acc.balances.map((balance, i) => ({
+            userId,
+            date: daysAgoUtc(SNAPSHOT_DAYS_AGO[i]),
+            balance,
+          })),
+        },
+      },
+    });
+  }
 }

@@ -38,12 +38,15 @@ const INCOME_CATEGORIES = new Set([
   "wage",
   "wages",
   "income",
+  "other income",
+  "misc income",
   "dividend",
   "dividends",
   "interest",
   "bonus",
   "refund",
   "rebate",
+  "reimbursement",
 ]);
 
 const isIncomeCategory = (name: string) =>
@@ -122,9 +125,11 @@ export function parseTransactionsCsv(csvText: string): CsvParseResult {
 /**
  * Parses a wide/matrix CSV: column A is the date, each remaining column header
  * is a category, and cells hold the amount for that category on that date. Most
- * cells are blank. A column named "<x> desc" (or "<x> description") supplies the
- * description for category "<x>" (e.g. "other desc" -> the "other" category).
- * Income vs expense is decided by column name (see INCOME_CATEGORIES).
+ * cells are blank. A column named "<x> desc" (or "<x> description") supplies a
+ * per-row LABEL that replaces the category for that entry (e.g. an "other" cell
+ * with "other desc" = "chemist warehouse" is categorised as "chemist warehouse"
+ * on the dashboards, not lumped under "other"). Income vs expense is decided by
+ * column name (see INCOME_CATEGORIES).
  */
 export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
   const parsed = Papa.parse<string[]>(csvText, {
@@ -188,15 +193,17 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
         continue;
       }
 
+      // A paired "<x> desc" cell becomes the category label for this row, so a
+      // generic "other" bucket reads as its real description on the dashboards.
       const descIndex = descColumnFor.get(col.category.toLowerCase());
-      const description =
+      const descValue =
         descIndex !== undefined ? (row[descIndex] ?? "").trim() : "";
+      const category = descValue || col.category;
 
       const result = transactionSchema.safeParse({
         type: col.isIncome ? "INCOME" : "EXPENSE",
         amount: Math.abs(amount),
-        category: col.category,
-        description: description || undefined,
+        category,
         date,
         currency: BASE_CURRENCY,
       });

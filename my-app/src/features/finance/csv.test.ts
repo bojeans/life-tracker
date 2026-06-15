@@ -126,11 +126,22 @@ describe("parseWideTransactionsCsv", () => {
     expect((jan.date as Date).toISOString().slice(0, 10)).toBe("2026-01-01");
   });
 
-  it("attaches a paired '<x> desc' column as the description", () => {
+  it("promotes a paired '<x> desc' value to the category label", () => {
     const { valid } = parseWideTransactionsCsv(wide);
-    const other = valid.find((t) => t.category === "other")!;
-    expect(other.description).toBe("chemist warehouse");
-    expect(other.amount).toBe(113.38);
+    const labelled = valid.find((t) => t.category === "chemist warehouse")!;
+    expect(labelled.amount).toBe(113.38);
+    // The generic "other" bucket is replaced by the descriptive label.
+    expect(valid.some((t) => t.category === "other")).toBe(false);
+  });
+
+  it("classifies an 'other income' column as income", () => {
+    const csv = [",other income,dividends", "01/01/2026,80,"].join("\n");
+    const { valid } = parseWideTransactionsCsv(csv);
+    expect(valid[0]).toMatchObject({
+      type: "INCOME",
+      category: "other income",
+      amount: 80,
+    });
   });
 
   it("strips thousands separators from amounts", () => {

@@ -23,6 +23,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  wealthAccounts   WealthAccount[]
+  balanceSnapshots BalanceSnapshot[]
+
   shareToken String? @unique @default(cuid())
   // When true, this account is a public sandbox: visitors holding its
   // shareToken can act as it (add/edit/delete) via demo mode. Never set on a
@@ -118,6 +121,51 @@ model Transaction {
   // Prevent importing the same external record twice. Multiple NULLs are
   // allowed by Postgres, so manual entries are unaffected.
   @@unique([userId, source, externalId])
+  @@index([userId, date])
+}
+
+// Asset class for a net-worth account, so balances roll up into a composition.
+enum AssetClass {
+  CASH
+  SHARES
+  CRYPTO
+  SUPER
+}
+
+// A place wealth is held (e.g. Kiwibank, Sharesies, crypto.com). Its balance
+// over time is captured as BalanceSnapshots; net worth is the sum of each
+// account's latest balance, converted to the base currency.
+model WealthAccount {
+  id          String     @id @default(cuid())
+  userId      String
+  name        String
+  institution String?
+  assetClass  AssetClass
+  currency    String     @default("NZD")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots BalanceSnapshot[]
+
+  @@index([userId])
+}
+
+// A point-in-time balance for one account. One per account per date (upserted),
+// so re-recording a month overwrites rather than duplicates.
+model BalanceSnapshot {
+  id        String   @id @default(cuid())
+  userId    String
+  accountId String
+  date      DateTime
+  balance   Decimal  @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account WealthAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, date])
   @@index([userId, date])
 }
 
