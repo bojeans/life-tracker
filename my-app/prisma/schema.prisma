@@ -179,6 +179,11 @@ model FoodItem {
   brand        String?
   category     String?
   barcode      String?
+  // A serving as the user entered it (e.g. 1 "tbsp"), plus its gram equivalent.
+  // servingSizeG stays canonical for macro math; amount/unit are for display
+  // and to default the logging unit. Null unit ⇒ plain grams / OFF import.
+  servingAmount Decimal?    @db.Decimal(10, 3)
+  servingUnit  String?
   servingSizeG Decimal?     @db.Decimal(10, 2)
   // per-100g macros
   calories     Decimal      @db.Decimal(10, 2)

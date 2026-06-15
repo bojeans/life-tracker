@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFoodItems } from "./food-item-actions";
 import { scaleMacros } from "./openfoodfacts";
+import { UNITS, DEFAULT_UNIT, isUnit, toGrams, type Unit } from "./units";
 import type { FoodItemDTO } from "./food-item-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +53,8 @@ export function CatalogPicker({ onPick }: { onPick: (p: CatalogPick) => void }) 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [selected, setSelected] = useState<FoodItemDTO | null>(null);
-  const [grams, setGrams] = useState(100);
+  const [amount, setAmount] = useState(100);
+  const [unit, setUnit] = useState<Unit>(DEFAULT_UNIT);
 
   const categories = useMemo(
     () =>
@@ -74,8 +76,18 @@ export function CatalogPicker({ onPick }: { onPick: (p: CatalogPick) => void }) 
 
   function choose(item: FoodItemDTO) {
     setSelected(item);
-    setGrams(item.servingSizeG ?? 100);
+    // Default to the item's recorded serving (e.g. 1 tbsp); otherwise grams.
+    if (item.servingAmount != null && item.servingUnit && isUnit(item.servingUnit)) {
+      setAmount(item.servingAmount);
+      setUnit(item.servingUnit);
+    } else {
+      setAmount(item.servingSizeG ?? 100);
+      setUnit(DEFAULT_UNIT);
+    }
   }
+
+  const grams = toGrams(amount, unit);
+  const preview = selected ? scaledPick(selected, grams) : null;
 
   function add() {
     if (!selected) return;
@@ -149,30 +161,43 @@ export function CatalogPicker({ onPick }: { onPick: (p: CatalogPick) => void }) 
         </ul>
       )}
 
-      {selected && (
+      {selected && preview && (
         <div className="bg-muted/40 flex flex-wrap items-end gap-3 rounded-md border p-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{selected.name}</p>
             <p className="text-muted-foreground text-xs">
-              {scaledPick(selected, grams).calories} kcal · P{" "}
-              {scaledPick(selected, grams).protein} / C{" "}
-              {scaledPick(selected, grams).carbs} / F{" "}
-              {scaledPick(selected, grams).fat}
+              {preview.calories} kcal · P {preview.protein} / C {preview.carbs} /
+              F {preview.fat}
+              {unit !== "g" && <> · {grams} g</>}
             </p>
           </div>
           <div className="space-y-1">
-            <label className="text-muted-foreground text-xs" htmlFor="catalog-grams">
-              Grams
+            <label className="text-muted-foreground text-xs" htmlFor="catalog-amount">
+              Amount
             </label>
-            <Input
-              id="catalog-grams"
-              type="number"
-              min="0"
-              step="1"
-              className="w-24"
-              value={grams}
-              onChange={(e) => setGrams(Number(e.target.value) || 0)}
-            />
+            <div className="flex gap-1">
+              <Input
+                id="catalog-amount"
+                type="number"
+                min="0"
+                step="any"
+                className="w-20"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value) || 0)}
+              />
+              <select
+                aria-label="Unit"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value as Unit)}
+                className="border-input h-9 rounded-md border bg-transparent px-2 text-sm shadow-xs"
+              >
+                {UNITS.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <Button type="button" size="sm" onClick={add}>
             Use this

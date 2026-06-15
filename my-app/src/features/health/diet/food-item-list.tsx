@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFoodItems, deleteFoodItem } from "./food-item-actions";
 import { FoodItemForm } from "./food-item-form";
+import { formatServing } from "./units";
 import type { FoodItemDTO } from "./food-item-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ export function FoodItemList({ initialData }: { initialData: FoodItemDTO[] }) {
   const [editing, setEditing] = useState<FoodItemDTO | null>(null);
   const [confirming, setConfirming] = useState<FoodItemDTO | null>(null);
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
 
   const { data: items = [] } = useQuery({
     queryKey: ["foodItems"],
@@ -27,16 +29,24 @@ export function FoodItemList({ initialData }: { initialData: FoodItemDTO[] }) {
     initialData,
   });
 
+  const categories = useMemo(
+    () =>
+      [...new Set(items.map((i) => i.category).filter(Boolean))].sort() as string[],
+    [items],
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (i) =>
+    return items.filter((i) => {
+      if (category !== "all" && i.category !== category) return false;
+      if (!q) return true;
+      return (
         i.name.toLowerCase().includes(q) ||
         (i.brand?.toLowerCase().includes(q) ?? false) ||
-        (i.category?.toLowerCase().includes(q) ?? false),
-    );
-  }, [items, search]);
+        (i.category?.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [items, search, category]);
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteFoodItem(id),
@@ -73,13 +83,31 @@ export function FoodItemList({ initialData }: { initialData: FoodItemDTO[] }) {
   return (
     <>
       <div className="space-y-4">
-        <Input
-          type="search"
-          placeholder="Search your pantry…"
-          aria-label="Search pantry"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="flex flex-wrap gap-2">
+          <Input
+            type="search"
+            placeholder="Search your pantry…"
+            aria-label="Search pantry"
+            className="flex-1"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {categories.length > 0 && (
+            <select
+              aria-label="Filter by category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="border-input h-9 rounded-md border bg-transparent px-2.5 text-sm shadow-xs"
+            >
+              <option value="all">All categories</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
         <p className="text-muted-foreground text-sm">
           {filtered.length} of {items.length} item(s)
         </p>
@@ -108,6 +136,14 @@ export function FoodItemList({ initialData }: { initialData: FoodItemDTO[] }) {
                     {i.calories} kcal/100g · P {i.protein} / C {i.carbs} / F{" "}
                     {i.fat}
                     {i.category ? ` · ${i.category}` : ""}
+                    {(() => {
+                      const serving = formatServing(
+                        i.servingAmount,
+                        i.servingUnit,
+                        i.servingSizeG,
+                      );
+                      return serving ? ` · serving ${serving}` : "";
+                    })()}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-3">

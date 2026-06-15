@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { foodItemSchema } from "./food-item-schema";
-import { createFoodItem, updateFoodItem } from "./food-item-actions";
+import { createFoodItem, updateFoodItem, getFoodItems } from "./food-item-actions";
 import type { FoodItemDTO, FoodItemPrefill } from "./food-item-types";
+import { UNITS, DEFAULT_UNIT } from "./units";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +23,8 @@ function blank(prefill?: FoodItemPrefill): FormInput {
     brand: prefill?.brand ?? "",
     category: prefill?.category ?? "",
     barcode: prefill?.barcode ?? "",
-    servingSizeG: "",
+    servingAmount: "",
+    servingUnit: DEFAULT_UNIT,
     calories: v(prefill?.calories),
     protein: v(prefill?.protein),
     carbs: v(prefill?.carbs),
@@ -40,7 +43,8 @@ function defaultsFrom(item: FoodItemDTO): FormInput {
     brand: item.brand ?? "",
     category: item.category ?? "",
     barcode: item.barcode ?? "",
-    servingSizeG: s(item.servingSizeG),
+    servingAmount: s(item.servingAmount),
+    servingUnit: (item.servingUnit ?? DEFAULT_UNIT) as FormInput["servingUnit"],
     calories: item.calories as unknown as number,
     protein: item.protein as unknown as number,
     carbs: item.carbs as unknown as number,
@@ -63,6 +67,14 @@ export function FoodItemForm({
 }) {
   const queryClient = useQueryClient();
   const isEdit = Boolean(item);
+  const [dupError, setDupError] = useState<string | null>(null);
+
+  // Cached pantry list — used to catch a duplicate name+brand before submitting
+  // (the server enforces it too, as a backstop against races).
+  const { data: items = [] } = useQuery({
+    queryKey: ["foodItems"],
+    queryFn: () => getFoodItems(),
+  });
 
   const {
     register,
@@ -92,9 +104,31 @@ export function FoodItemForm({
     },
   });
 
+  function onSubmit(values: FormOutput) {
+    const name = values.name.trim().toLowerCase();
+    const brand = (values.brand ?? "").trim().toLowerCase();
+    const clash = items.find(
+      (i) =>
+        i.id !== item?.id &&
+        i.name.trim().toLowerCase() === name &&
+        (i.brand ?? "").trim().toLowerCase() === brand,
+    );
+    if (clash) {
+      setDupError(
+        `"${values.name}"${values.brand ? ` (${values.brand})` : ""} is already in your pantry.`,
+      );
+      return;
+    }
+    setDupError(null);
+    mutation.mutate(values);
+  }
+
+  const errorMessage =
+    dupError ?? (mutation.error instanceof Error ? mutation.error.message : null);
+
   return (
     <form
-      onSubmit={handleSubmit((values) => mutation.mutate(values))}
+      onSubmit={handleSubmit(onSubmit)}
       className="space-y-4 rounded-lg border p-4"
       aria-label={isEdit ? "Edit food item" : "Add food item"}
     >
@@ -135,7 +169,31 @@ export function FoodItemForm({
 
       <div className="grid grid-cols-2 gap-4">
         <Field id="fi-barcode" label="Barcode" reg={register("barcode")} />
-        <Field id="fi-serving" label="Serving size (g)" type="number" reg={register("servingSizeG")} />
+        <div className="space-y-1.5">
+          <Label htmlFor="fi-serving-amount">Serving size</Label>
+          <div className="flex gap-2">
+            <Input
+              id="fi-serving-amount"
+              type="number"
+              step="any"
+              min="0"
+              placeholder="e.g. 1"
+              className="flex-1"
+              {...register("servingAmount")}
+            />
+            <select
+              aria-label="Serving unit"
+              {...register("servingUnit")}
+              className="border-input h-9 rounded-md border bg-transparent px-2 text-sm shadow-xs"
+            >
+              {UNITS.map((u) => (
+                <option key={u.value} value={u.value}>
+                  {u.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -155,10 +213,8 @@ export function FoodItemForm({
       <Button type="submit" disabled={mutation.isPending}>
         {mutation.isPending ? "Saving…" : isEdit ? "Save changes" : "Add to pantry"}
       </Button>
-      {mutation.isError && (
-        <p className="text-destructive text-sm">
-          Something went wrong. Please try again.
-        </p>
+      {errorMessage && (
+        <p className="text-destructive text-sm">{errorMessage}</p>
       )}
     </form>
   );
@@ -185,7 +241,7 @@ function Field({
       <Input
         id={id}
         type={type}
-        step={type === "number" ? "0.1" : undefined}
+        step={type === "number" ? "any" : undefined}
         placeholder={placeholder}
         {...reg}
       />

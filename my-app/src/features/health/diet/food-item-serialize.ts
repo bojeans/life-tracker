@@ -7,6 +7,8 @@ export type FoodItemRow = {
   brand: string | null;
   category: string | null;
   barcode: string | null;
+  servingAmount: unknown;
+  servingUnit: string | null;
   servingSizeG: unknown;
   calories: unknown;
   protein: unknown;
@@ -28,6 +30,8 @@ export function toFoodItemDTO(row: FoodItemRow): FoodItemDTO {
     brand: row.brand,
     category: row.category,
     barcode: row.barcode,
+    servingAmount: numOrNull(row.servingAmount),
+    servingUnit: row.servingUnit,
     servingSizeG: numOrNull(row.servingSizeG),
     calories: Number(row.calories),
     protein: Number(row.protein),
