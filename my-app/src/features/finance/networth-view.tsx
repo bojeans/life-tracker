@@ -19,11 +19,17 @@ import {
   totalLiabilities,
   compositionByClass,
   netWorthOverTime,
+  filterByRange,
+  selectionSeries,
+  NET_WORTH_OPTION,
+  TIME_RANGES,
+  type TimeRange,
 } from "./networth-analytics";
 import { ASSET_CLASS_LABELS, type AssetClass } from "./networth-schema";
 import { BASE_CURRENCY, formatMoney, type Rates } from "./currency";
 import { AccountForm } from "./account-form";
 import { BalanceEntry } from "./balance-entry";
+import { NetWorthCsvImport } from "./networth-csv-import";
 import type { AccountDTO, BalanceSnapshotDTO } from "./networth-types";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +55,8 @@ export function NetWorthView({
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<AccountDTO | null>(null);
   const [confirming, setConfirming] = useState<AccountDTO | null>(null);
+  const [range, setRange] = useState<TimeRange>("1Y");
+  const [selection, setSelection] = useState<string>(NET_WORTH_OPTION);
 
   const { data } = useQuery({
     queryKey: ["netWorth"],
@@ -69,6 +77,18 @@ export function NetWorthView({
     () => netWorthOverTime(accounts, snapshots, BASE_CURRENCY, rates),
     [accounts, snapshots, rates],
   );
+  const series = useMemo(
+    () => selectionSeries(accounts, snapshots, BASE_CURRENCY, rates, selection),
+    [accounts, snapshots, rates, selection],
+  );
+  const rangedSeries = useMemo(
+    () => filterByRange(series, range),
+    [series, range],
+  );
+  const selectedLabel =
+    selection === NET_WORTH_OPTION
+      ? "Net worth"
+      : (accounts.find((a) => a.id === selection)?.name ?? "Net worth");
   const latestMap = useMemo(
     () => Object.fromEntries(balances.map((b) => [b.account.id, b.balance])),
     [balances],
@@ -133,15 +153,14 @@ export function NetWorthView({
                       <div className="flex justify-between">
                         <span>{classLabel(s.assetClass)}</span>
                         <span className="text-muted-foreground">
-                          {money(s.total)} ·{" "}
-                          {total > 0 ? Math.round((s.total / total) * 100) : 0}%
+                          {money(s.total)} · {Math.round(s.share)}%
                         </span>
                       </div>
                       <div className="bg-muted mt-1 h-1.5 overflow-hidden rounded">
                         <div
                           className="bg-foreground h-full"
                           style={{
-                            width: `${total > 0 ? (s.total / total) * 100 : 0}%`,
+                            width: `${s.share}%`,
                           }}
                         />
                       </div>
@@ -158,29 +177,66 @@ export function NetWorthView({
 
           {overTime.length > 1 && (
             <div className="space-y-3 rounded-lg border p-4">
-              <h2 className="font-semibold">Net worth over time</h2>
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={overTime} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                  <XAxis dataKey="label" fontSize={12} tickLine={false} />
-                  <YAxis
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    width={64}
-                    tickFormatter={(v) => money(Number(v))}
-                  />
-                  <Tooltip formatter={(v) => money(Number(v))} />
-                  <Line
-                    type="monotone"
-                    dataKey="total"
-                    name="Net worth"
-                    stroke="#0ea5e9"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold">Over time</h2>
+                  <select
+                    aria-label="Chart series"
+                    value={selection}
+                    onChange={(e) => setSelection(e.target.value)}
+                    className="border-input h-8 rounded-md border bg-transparent px-2 text-sm shadow-xs"
+                  >
+                    <option value={NET_WORTH_OPTION}>Net worth</option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-1">
+                  {TIME_RANGES.map((r) => (
+                    <Button
+                      key={r.value}
+                      size="sm"
+                      variant={range === r.value ? "default" : "ghost"}
+                      onClick={() => setRange(r.value)}
+                      className="h-7 px-2 text-xs"
+                      aria-pressed={range === r.value}
+                    >
+                      {r.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {rangedSeries.length > 1 ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={rangedSeries} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                    <XAxis dataKey="label" fontSize={12} tickLine={false} />
+                    <YAxis
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      width={64}
+                      tickFormatter={(v) => money(Number(v))}
+                    />
+                    <Tooltip formatter={(v) => money(Number(v))} />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      name={selectedLabel}
+                      stroke="#0ea5e9"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted-foreground py-8 text-center text-sm">
+                  Not enough data in this range yet.
+                </p>
+              )}
             </div>
           )}
 
@@ -251,6 +307,7 @@ export function NetWorthView({
             ))}
           </ul>
         )}
+        {accounts.length > 0 && <NetWorthCsvImport />}
       </section>
 
       {history.length > 0 && (
