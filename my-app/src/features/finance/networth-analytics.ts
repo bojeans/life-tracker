@@ -78,7 +78,15 @@ export function totalLiabilities(balances: AccountBalance[]): number {
   );
 }
 
-export type CompositionSlice = { assetClass: string; total: number };
+// `share` is the percentage of total ASSETS this class represents (0–100), so
+// the slices sum to ~100. It is deliberately measured against assets, not net
+// worth — liabilities are excluded here and shown as a separate total, so
+// dividing by net worth would push the shares over 100%.
+export type CompositionSlice = {
+  assetClass: string;
+  total: number;
+  share: number;
+};
 
 // Asset composition by class (base currency), largest first, zero classes
 // dropped. Liabilities are excluded — they're shown as a separate total.
@@ -93,8 +101,13 @@ export function compositionByClass(
       (map.get(b.account.assetClass) ?? 0) + b.baseBalance,
     );
   }
+  const assetsTotal = [...map.values()].reduce((sum, v) => sum + v, 0);
   return [...map.entries()]
-    .map(([assetClass, total]) => ({ assetClass, total: round2(total) }))
+    .map(([assetClass, total]) => ({
+      assetClass,
+      total: round2(total),
+      share: assetsTotal > 0 ? round2((total / assetsTotal) * 100) : 0,
+    }))
     .filter((s) => s.total !== 0)
     .sort((a, b) => b.total - a.total);
 }

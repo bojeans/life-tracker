@@ -153,15 +153,14 @@ export function NetWorthView({
                       <div className="flex justify-between">
                         <span>{classLabel(s.assetClass)}</span>
                         <span className="text-muted-foreground">
-                          {money(s.total)} ·{" "}
-                          {total > 0 ? Math.round((s.total / total) * 100) : 0}%
+                          {money(s.total)} · {Math.round(s.share)}%
                         </span>
                       </div>
                       <div className="bg-muted mt-1 h-1.5 overflow-hidden rounded">
                         <div
                           className="bg-foreground h-full"
                           style={{
-                            width: `${total > 0 ? (s.total / total) * 100 : 0}%`,
+                            width: `${s.share}%`,
                           }}
                         />
                       </div>

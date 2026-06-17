@@ -94,8 +94,9 @@ describe("netWorthTotal + compositionByClass", () => {
     );
     expect(netWorthTotal(balances)).toBe(7200); // 1200 + 5000 + 1000
     expect(compositionByClass(balances)).toEqual([
-      { assetClass: "SHARES", total: 5000 },
-      { assetClass: "CASH", total: 2200 }, // 1200 + 1000
+      // shares of total assets (7200): 5000/7200, 2200/7200
+      { assetClass: "SHARES", total: 5000, share: 69.44 },
+      { assetClass: "CASH", total: 2200, share: 30.56 }, // 1200 + 1000
     ]);
   });
 });
@@ -123,6 +124,25 @@ describe("liabilities", () => {
     expect(netWorthTotal(balances)).toBe(-2800); // 6200 − 9000
     // Composition is assets only — the loan is not a slice.
     expect(compositionByClass(balances).some((s) => s.total === 9000)).toBe(false);
+  });
+
+  it("asset-class shares are measured against total assets, not net worth, so they sum to 100 even with a liability", () => {
+    const balances = latestBalances(
+      withLoan,
+      [
+        snap("kb", "2026-06-01", 1200), // CASH
+        snap("ss", "2026-06-01", 5000), // SHARES
+        snap("cba", "2026-06-01", 900), // CASH, 900 AUD → 1000 NZD
+        snap("loan", "2026-06-01", 9000), // LIABILITY — must not shrink the denominator
+      ],
+      "NZD",
+      rates,
+    );
+    const comp = compositionByClass(balances);
+    // assets = 5000 shares + 2200 cash = 7200; the 9000 loan is excluded.
+    expect(comp.find((s) => s.assetClass === "SHARES")!.share).toBeCloseTo(69.44, 1);
+    expect(comp.find((s) => s.assetClass === "CASH")!.share).toBeCloseTo(30.56, 1);
+    expect(comp.reduce((sum, s) => sum + s.share, 0)).toBeCloseTo(100, 1);
   });
 
   it("subtracts the liability across the over-time series", () => {
