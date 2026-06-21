@@ -42,6 +42,7 @@ model User {
   bloodPressureEntries BloodPressureEntry[]
   recipes         Recipe[]
   profile         Profile?
+  mediaItems      MediaItem[]
 }
 
 model Account {
@@ -403,4 +404,41 @@ model WeightEntry {
 
   @@unique([userId, source, externalId])
   @@index([userId, date])
+}
+
+// ── Travel ───────────────────────────────────────────────────────────────────
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+// A photo or short video. The app is a metadata *index*: the bytes never live
+// in Postgres — they sit in object storage (or /public for the demo) and are
+// referenced by storageKey/thumbKey. See src/features/travel/media-url.ts for
+// how a key becomes a loadable URL (today a /public path; later a signed R2
+// URL). Grids load only the small thumbKey; originals load on click.
+model MediaItem {
+  id          String    @id @default(cuid())
+  userId      String
+  type        MediaType @default(PHOTO)
+  storageKey  String // object key / path to the original
+  thumbKey    String? // object key / path to a small thumbnail
+  title       String?
+  album       String? // a "folder" — a trip or country
+  takenAt     DateTime? // capture time (from EXIF when ingested)
+  lat         Float?
+  lng         Float?
+  width       Int?
+  height      Int?
+  durationSec Int? // videos only
+  tags        String[]  @default([])
+  source      String    @default("MANUAL")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Keyset pagination orders by (takenAt desc, id desc); this index backs it.
+  @@index([userId, takenAt, id])
 }

@@ -21,6 +21,8 @@ import { getExchangeRates } from "@/features/finance/currency-actions";
 import { getSharedHealth } from "@/features/health/shared";
 import { SharedHealthCharts } from "@/features/health/shared-health-charts";
 import { CategoryBadge } from "@/features/health/blood-pressure/category-badge";
+import { getSharedMedia } from "@/features/travel/media-shared";
+import { mediaUrl, thumbUrl } from "@/features/travel/media-url";
 import { LaunchDemoButton } from "@/features/demo/launch-demo-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -37,9 +39,10 @@ const classLabel = (c: string) => ASSET_CLASS_LABELS[c as AssetClass] ?? c;
 
 export default async function SharedPage({ params }: Props) {
   const { shareToken } = await params;
-  const [finance, health, rates] = await Promise.all([
+  const [finance, health, media, rates] = await Promise.all([
     getSharedFinance(shareToken),
     getSharedHealth(shareToken),
+    getSharedMedia(shareToken),
     getExchangeRates(),
   ]);
 
@@ -251,6 +254,42 @@ export default async function SharedPage({ params }: Props) {
             bloodPressureTrend={health.bloodPressureTrend}
             balance={health.balance}
           />
+        </section>
+      )}
+
+      {/* ── Travel ───────────────────────────────────────────────── */}
+      {media && (
+        <section className="space-y-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold">Travel</h2>
+            {media.albums.length > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {media.albums.join(" · ")}
+              </p>
+            )}
+          </div>
+
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {media.items.map((item) => (
+              <li key={item.id}>
+                <a
+                  href={mediaUrl(item.storageKey)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-muted block aspect-square overflow-hidden rounded-lg"
+                  title={item.title ?? undefined}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- user media; see media-url.ts */}
+                  <img
+                    src={thumbUrl(item)}
+                    alt={item.title ?? ""}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition hover:scale-105"
+                  />
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </main>

@@ -166,6 +166,17 @@ const demoNetWorth = [
 ];
 const SNAPSHOT_DAYS_AGO = [330, 300, 270, 240, 210, 180, 150, 120, 90, 60, 30, 0];
 
+// Travel media: a handful of placeholder "photos" (SVGs in /public, so they
+// render without object storage) across two country albums. storageKey/thumbKey
+// are /public paths now; they become R2 object keys once real ingestion lands.
+const demoMedia = [
+  { storageKey: "/demo/travel/japan-tokyo.svg", title: "Shibuya at night", album: "Japan 2025", daysAgo: 214, tags: ["city", "night"], lat: 35.6595, lng: 139.7005 },
+  { storageKey: "/demo/travel/japan-fuji.svg", title: "Mount Fuji from Kawaguchiko", album: "Japan 2025", daysAgo: 212, tags: ["mountain", "nature"], lat: 35.5167, lng: 138.7667 },
+  { storageKey: "/demo/travel/japan-kyoto.svg", title: "Fushimi Inari shrine", album: "Japan 2025", daysAgo: 209, tags: ["temple", "history"], lat: 34.9671, lng: 135.7727 },
+  { storageKey: "/demo/travel/nz-milford.svg", title: "Milford Sound", album: "New Zealand 2026", daysAgo: 64, tags: ["fjord", "nature"], lat: -44.6414, lng: 167.8974 },
+  { storageKey: "/demo/travel/nz-hobbiton.svg", title: "Hobbiton movie set", album: "New Zealand 2026", daysAgo: 61, tags: ["film", "countryside"], lat: -37.8721, lng: 175.6829 },
+];
+
 export const DEMO_COUNTS = {
   transactions: demoTransactions.length,
   accounts: demoNetWorth.length,
@@ -174,6 +185,7 @@ export const DEMO_COUNTS = {
   dietDays: demoDietTotals.length,
   workouts: demoExercise.length,
   pantry: demoFoodItems.length,
+  media: demoMedia.length,
 };
 
 // Wipes and reinserts the demo user's data. Idempotent — safe to call on every
@@ -186,6 +198,7 @@ export async function seedDemoData(db: PrismaClient, userId: string) {
   await db.dietEntry.deleteMany({ where: { userId } });
   await db.exerciseEntry.deleteMany({ where: { userId } });
   await db.foodItem.deleteMany({ where: { userId } });
+  await db.mediaItem.deleteMany({ where: { userId } });
 
   await db.transaction.createMany({
     data: demoTransactions.map((t) => ({
@@ -290,4 +303,22 @@ export async function seedDemoData(db: PrismaClient, userId: string) {
       },
     });
   }
+
+  await db.mediaItem.createMany({
+    data: demoMedia.map((m) => ({
+      userId,
+      type: "PHOTO" as const,
+      storageKey: m.storageKey,
+      thumbKey: m.storageKey, // SVGs are vector — same asset works as a thumb
+      title: m.title,
+      album: m.album,
+      takenAt: daysAgoUtc(m.daysAgo),
+      lat: m.lat,
+      lng: m.lng,
+      width: 1200,
+      height: 800,
+      tags: m.tags,
+      source: "DEMO",
+    })),
+  });
 }

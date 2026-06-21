@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="msky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cbd5e1"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#msky)"/>
+  <polygon points="0,520 220,180 430,520" fill="#334155"/>
+  <polygon points="320,520 620,120 900,520" fill="#1e293b"/>
+  <polygon points="760,520 1000,240 1200,520" fill="#334155"/>
+  <polygon points="560,160 600,260 540,260" fill="#f1f5f9"/>
+  <rect x="0" y="520" width="1200" height="280" fill="#0e7490"/>
+  <polygon points="320,520 620,520 470,640" fill="#155e75" opacity="0.6"/>
+  <text x="60" y="760" font-family="Georgia, serif" font-size="60" fill="#ffffff" opacity="0.92">Milford Sound</text>
+</svg>
