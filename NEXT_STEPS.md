@@ -2,8 +2,8 @@
 
 _Last updated: 2026-06-06. Finance complete; Health (Diet + Weight + Exercise + energy-balance Overview) built; Travel not started._
 
-## Interactive recruiter demo (new)
-The public `/shared/[shareToken]` view has a **"Launch interactive demo"** button: recruiters enter the real app as the demo account (`User.isDemo` gated) and can **add/edit/delete across all of Finance + Health**, watching dashboards update live. A demo banner offers **Exit** and **Reset demo data**. Built without NextAuth (DB sessions) via a gated `demo_user` cookie + `resolveActorUserId()` chokepoint. Note: it's a *shared* sandbox (everyone edits the same demo account; Reset restores it). Possible follow-ups: per-visitor isolated demo accounts; rate-limiting; a periodic auto-reset.
+## Interactive demo (new)
+The public `/shared/[shareToken]` view has a **"Launch interactive demo"** button: visitors enter the real app as the demo account (`User.isDemo` gated) and can **add/edit/delete across all of Finance + Health**, watching dashboards update live. A demo banner offers **Exit** and **Reset demo data**. Built without NextAuth (DB sessions) via a gated `demo_user` cookie + `resolveActorUserId()` chokepoint. Note: it's a *shared* sandbox (everyone edits the same demo account; Reset restores it). Possible follow-ups: per-visitor isolated demo accounts; rate-limiting; a periodic auto-reset.
 
 ## Health — Exercise + energy balance (new)
 - **Profile** (`/health/profile`) — height/age/sex/activity (+ optional body-fat %), feeds BMR/TDEE.
@@ -14,7 +14,7 @@ The public `/shared/[shareToken]` view has a **"Launch interactive demo"** butto
 
 ## Where we are
 
-**Finance** — solid vertical slice: owner-scoped CRUD, CSV import (long & wide layouts, dedupe, timezone-safe), Dashboard/Manage split, shared `<TransactionFilters>` bar (LLM-ready `TransactionFilter`), recruiter view `/shared/[shareToken]` with charts, confirm + optimistic delete.
+**Finance** — solid vertical slice: owner-scoped CRUD, CSV import (long & wide layouts, dedupe, timezone-safe), Dashboard/Manage split, shared `<TransactionFilters>` bar (LLM-ready `TransactionFilter`), shared view `/shared/[shareToken]` with charts, confirm + optimistic delete.
 
 **Health** (new, 2026-06-06) — Diet + Weight, mirroring finance:
 - **Diet** (`/health/diet`): tabs Dashboard | Manage | Pantry. Supports both per-item foods and whole-day totals; owner-scoped CRUD, CSV import w/ dedupe, search + confirm/optimistic delete, dashboard (calories/day bar + macro-split pie).
