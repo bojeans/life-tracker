@@ -24,6 +24,7 @@ async function main() {
   console.log(`  • ${DEMO_COUNTS.transactions} transactions, ${DEMO_COUNTS.accounts} net-worth accounts`);
   console.log(`  • ${DEMO_COUNTS.weights} weight entries, ${DEMO_COUNTS.bloodPressure} BP readings, ${DEMO_COUNTS.dietDays} diet days`);
   console.log(`  • ${DEMO_COUNTS.workouts} workouts, ${DEMO_COUNTS.pantry} pantry items, 1 profile`);
+  console.log(`  • ${DEMO_COUNTS.media} travel media items`);
   console.log(`Share URL: http://localhost:3000/shared/${demo.shareToken}`);
 }
 

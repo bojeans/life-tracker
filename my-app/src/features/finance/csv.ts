@@ -35,6 +35,7 @@ type RawRow = Record<string, string | undefined>;
 // else is an expense). Adjust here if the spreadsheet adds new income columns.
 const INCOME_CATEGORIES = new Set([
   "salary",
+  "gross salary",
   "wage",
   "wages",
   "income",
@@ -47,16 +48,30 @@ const INCOME_CATEGORIES = new Set([
   "refund",
   "rebate",
   "reimbursement",
+  "inheritance",
+  "inheritence", // common misspelling, accepted so the column still classifies
 ]);
 
 const isIncomeCategory = (name: string) =>
   INCOME_CATEGORIES.has(name.trim().toLowerCase());
 
+// Columns that are deliberately NOT imported as their own transactions. "net
+// salary" is take-home pay, which the income model derives as gross −
+// deductions (see income-metrics.ts); importing it as well would double-count
+// pay. Add other derived/duplicate columns here.
+const IGNORED_COLUMNS = new Set([
+  "net salary",
+  "take home",
+  "take-home",
+  "take home pay",
+]);
+
+const isIgnoredColumn = (name: string) =>
+  IGNORED_COLUMNS.has(name.trim().toLowerCase());
+
 // Column names treated as own-account TRANSFERs (excluded from income/expense).
 // KiwiSaver/super are contributions to your own wealth, not spending.
 const TRANSFER_CATEGORIES = new Set([
-  "kiwisaver",
-  "kiwi saver",
   "super",
   "superannuation",
   "transfer",
@@ -65,8 +80,19 @@ const TRANSFER_CATEGORIES = new Set([
   "to investments",
 ]);
 
-const isTransferCategory = (name: string) =>
-  TRANSFER_CATEGORIES.has(name.trim().toLowerCase());
+// A column is an own-account transfer if it's a known transfer category, OR its
+// name describes a move between accounts ("kiwibank transfer to sharesies",
+// "sharesies transfer to kiwibank", "wise transfer to kiwibank", …), OR it's a
+// KiwiSaver/super contribution (own wealth, not spending). Substring matching
+// keeps this robust as new account pairs are added to the sheet without having
+// to enumerate every "<account> transfer to <account>" combination.
+const isTransferCategory = (name: string) => {
+  const key = name.trim().toLowerCase();
+  if (TRANSFER_CATEGORIES.has(key)) return true;
+  if (key.includes("transfer")) return true;
+  if (key.includes("kiwisaver") || key.includes("kiwi saver")) return true;
+  return false;
+};
 
 const columnType = (name: string): "INCOME" | "EXPENSE" | "TRANSFER" => {
   if (isIncomeCategory(name)) return "INCOME";
@@ -121,10 +147,16 @@ export function parseTransactionsCsv(csvText: string): CsvParseResult {
           ? "EXPENSE"
           : "INCOME";
 
+    const category = (raw.category ?? "").trim() || "Uncategorized";
+    // Skip derived/duplicate columns (e.g. "net salary") so take-home pay isn't
+    // imported alongside gross income and double-counted, mirroring the wide
+    // parser. The row is silently dropped, not flagged as an error.
+    if (isIgnoredColumn(category)) return;
+
     const candidate = {
       type,
       amount: Math.abs(amountNum),
-      category: (raw.category ?? "").trim() || "Uncategorized",
+      category,
       description: (raw.description ?? "").trim() || undefined,
       date: (raw.date ?? "").trim(),
       currency: BASE_CURRENCY,
@@ -185,6 +217,8 @@ export function parseWideTransactionsCsv(csvText: string): CsvParseResult {
       descColumnFor.set(descMatch[1].trim().toLowerCase(), i);
       continue;
     }
+
+    if (isIgnoredColumn(name)) continue; // derived column (e.g. net salary)
 
     amountColumns.push({
       index: i,

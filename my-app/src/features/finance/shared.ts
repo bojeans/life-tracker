@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { toTransactionDTO } from "./serialize";
 import { summarizeTransactions, type FinanceSummary } from "./summary";
+import { toAccountDTO, toBalanceSnapshotDTO } from "./networth-serialize";
+import type { AccountDTO, BalanceSnapshotDTO } from "./networth-types";
 import type { TransactionDTO } from "./types";
 
 export type SharedFinance = {
@@ -12,6 +14,9 @@ export type SharedFinance = {
   // Full transaction set so the read-only view can render the same charts
   // (monthly income/expense, spending by category) as the owner dashboard.
   all: TransactionDTO[];
+  // Net-worth accounts + balance snapshots so the read-only view can show the
+  // same net-worth total, asset split and over-time line as the owner.
+  netWorth: { accounts: AccountDTO[]; snapshots: BalanceSnapshotDTO[] };
 };
 
 // Public, read-only lookup by share token. No auth — anyone with the token
@@ -25,6 +30,8 @@ export async function getSharedFinance(
       name: true,
       isDemo: true,
       transactions: { orderBy: { date: "desc" } },
+      wealthAccounts: { orderBy: { name: "asc" } },
+      balanceSnapshots: { orderBy: { date: "asc" } },
     },
   });
 
@@ -38,5 +45,9 @@ export async function getSharedFinance(
     summary: summarizeTransactions(transactions),
     recent: transactions.slice(0, 8),
     all: transactions,
+    netWorth: {
+      accounts: (user.wealthAccounts ?? []).map(toAccountDTO),
+      snapshots: (user.balanceSnapshots ?? []).map(toBalanceSnapshotDTO),
+    },
   };
 }

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="fsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bae6fd"/>
+      <stop offset="1" stop-color="#fed7aa"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#fsky)"/>
+  <circle cx="240" cy="180" r="60" fill="#fb923c" opacity="0.85"/>
+  <polygon points="600,160 920,640 280,640" fill="#475569"/>
+  <polygon points="600,160 690,400 510,400" fill="#f8fafc"/>
+  <polygon points="510,400 540,360 580,400 620,355 660,400 690,400 600,160" fill="#f8fafc"/>
+  <rect x="0" y="640" width="1200" height="160" fill="#1d4ed8" opacity="0.35"/>
+  <text x="60" y="740" font-family="Georgia, serif" font-size="64" fill="#0f172a" opacity="0.9">Mount Fuji</text>
+</svg>

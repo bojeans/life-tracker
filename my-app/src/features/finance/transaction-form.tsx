@@ -58,6 +58,21 @@ function defaultsFrom(t: TransactionDTO): FormInput {
   };
 }
 
+// The DTO fields derivable from a submitted form, used to patch the cache
+// optimistically. `date` is the schema-coerced Date (UTC midnight, same as the
+// server stores), normalised to the DTO's ISO-string shape so an optimistic row
+// sorts and renders identically to the refetched one.
+function optimisticFields(values: FormOutput) {
+  return {
+    type: values.type,
+    amount: values.amount,
+    currency: values.currency,
+    category: values.category,
+    description: values.description ?? null,
+    date: values.date.toISOString(),
+  };
+}
+
 export function TransactionForm({
   transaction,
   onSuccess,
@@ -101,14 +116,53 @@ export function TransactionForm({
         await createTransaction(values);
       }
     },
+    // Patch the ["transactions"] cache before the server responds so the list
+    // and dashboards update instantly; roll back on error. Mirrors the
+    // optimistic delete in transaction-list.tsx.
+    onMutate: async (values) => {
+      await queryClient.cancelQueries({ queryKey: ["transactions"] });
+      const previous = queryClient.getQueryData<TransactionDTO[]>([
+        "transactions",
+      ]);
+      const fields = optimisticFields(values);
+
+      queryClient.setQueryData<TransactionDTO[]>(["transactions"], (old) => {
+        const list = old ?? [];
+        if (transaction) {
+          // Edit: patch the existing row in place (id/source/externalId unchanged).
+          return list.map((t) =>
+            t.id === transaction.id ? { ...t, ...fields } : t,
+          );
+        }
+        // Create: prepend a temporary row, then re-sort to match the server's
+        // date-descending order. The temp id is replaced when the refetch lands.
+        const optimistic: TransactionDTO = {
+          id: `optimistic-${Date.now()}`,
+          source: "MANUAL",
+          ...fields,
+        };
+        return [optimistic, ...list].sort((a, b) =>
+          b.date.localeCompare(a.date),
+        );
+      });
+
+      return { previous };
+    },
+    onError: (_err, _values, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["transactions"], context.previous);
+      }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       if (isEdit) {
         onSuccess?.();
       } else {
         reset(blankDefaults());
       }
     },
+    // Reconcile against the server (replaces the temp row / confirms the edit).
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["transactions"] }),
   });
 
   return (

@@ -1,7 +1,17 @@
 import { notFound } from "next/navigation";
 import { getSharedFinance } from "@/features/finance/shared";
 import { FinanceCharts } from "@/features/finance/finance-charts";
+import { SharedNetWorthChart } from "@/features/finance/shared-networth-chart";
 import { summarizeTransactions } from "@/features/finance/summary";
+import {
+  latestBalances,
+  netWorthTotal,
+  totalAssets,
+  totalLiabilities,
+  compositionByClass,
+  netWorthOverTime,
+} from "@/features/finance/networth-analytics";
+import { ASSET_CLASS_LABELS, type AssetClass } from "@/features/finance/networth-schema";
 import {
   BASE_CURRENCY,
   convertTransactions,
@@ -11,6 +21,8 @@ import { getExchangeRates } from "@/features/finance/currency-actions";
 import { getSharedHealth } from "@/features/health/shared";
 import { SharedHealthCharts } from "@/features/health/shared-health-charts";
 import { CategoryBadge } from "@/features/health/blood-pressure/category-badge";
+import { getSharedMedia } from "@/features/travel/media-shared";
+import { mediaUrl, thumbUrl } from "@/features/travel/media-url";
 import { LaunchDemoButton } from "@/features/demo/launch-demo-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -23,11 +35,14 @@ const money = (n: number, whole = false) =>
 
 const kg = (n: number) => `${n > 0 ? "+" : ""}${n} kg`;
 
+const classLabel = (c: string) => ASSET_CLASS_LABELS[c as AssetClass] ?? c;
+
 export default async function SharedPage({ params }: Props) {
   const { shareToken } = await params;
-  const [finance, health, rates] = await Promise.all([
+  const [finance, health, media, rates] = await Promise.all([
     getSharedFinance(shareToken),
     getSharedHealth(shareToken),
+    getSharedMedia(shareToken),
     getExchangeRates(),
   ]);
 
@@ -38,6 +53,17 @@ export default async function SharedPage({ params }: Props) {
   const all = convertTransactions(finance.all, BASE_CURRENCY, rates);
   const summary = summarizeTransactions(all);
   const recent = all.slice(0, 8);
+
+  // Net worth: reuse the same analytics as the owner dashboard, converted to the
+  // base currency for a consistent public view.
+  const { accounts, snapshots } = finance.netWorth;
+  const balances = latestBalances(accounts, snapshots, BASE_CURRENCY, rates);
+  const netWorth = netWorthTotal(balances);
+  const assets = totalAssets(balances);
+  const liabilities = totalLiabilities(balances);
+  const composition = compositionByClass(balances);
+  const nwOverTime = netWorthOverTime(accounts, snapshots, BASE_CURRENCY, rates);
+  const hasNetWorth = snapshots.length > 0;
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-10 p-4 sm:p-8">
@@ -108,6 +134,54 @@ export default async function SharedPage({ params }: Props) {
           </ul>
         </div>
       </section>
+
+      {/* ── Net worth ────────────────────────────────────────────── */}
+      {hasNetWorth && (
+        <section className="space-y-6">
+          <h2 className="text-lg font-semibold">Net worth</h2>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <SummaryCard label="Net worth" value={money(netWorth, true)} accent="" />
+            <SummaryCard label="Assets" value={money(assets, true)} accent="text-green-600" />
+            <SummaryCard
+              label="Liabilities"
+              value={money(liabilities, true)}
+              accent={liabilities > 0 ? "text-destructive" : ""}
+            />
+          </div>
+
+          {composition.length > 0 && (
+            <div className="rounded-lg border p-4">
+              <p className="text-muted-foreground mb-2 text-sm">By asset class</p>
+              <ul className="space-y-1.5">
+                {composition.map((s) => (
+                  <li key={s.assetClass} className="text-sm">
+                    <div className="flex justify-between">
+                      <span>{classLabel(s.assetClass)}</span>
+                      <span className="text-muted-foreground">
+                        {money(s.total, true)} · {Math.round(s.share)}%
+                      </span>
+                    </div>
+                    <div className="bg-muted mt-1 h-1.5 overflow-hidden rounded">
+                      <div
+                        className="bg-foreground h-full"
+                        style={{ width: `${s.share}%` }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {nwOverTime.length > 1 && (
+            <div className="space-y-3 rounded-lg border p-4">
+              <h3 className="font-semibold">Net worth over time</h3>
+              <SharedNetWorthChart points={nwOverTime} />
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── Health ───────────────────────────────────────────────── */}
       {health?.hasData && (
@@ -180,6 +254,42 @@ export default async function SharedPage({ params }: Props) {
             bloodPressureTrend={health.bloodPressureTrend}
             balance={health.balance}
           />
+        </section>
+      )}
+
+      {/* ── Travel ───────────────────────────────────────────────── */}
+      {media && (
+        <section className="space-y-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold">Travel</h2>
+            {media.albums.length > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {media.albums.join(" · ")}
+              </p>
+            )}
+          </div>
+
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {media.items.map((item) => (
+              <li key={item.id}>
+                <a
+                  href={mediaUrl(item.storageKey)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-muted block aspect-square overflow-hidden rounded-lg"
+                  title={item.title ?? undefined}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- user media; see media-url.ts */}
+                  <img
+                    src={thumbUrl(item)}
+                    alt={item.title ?? ""}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition hover:scale-105"
+                  />
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </main>
