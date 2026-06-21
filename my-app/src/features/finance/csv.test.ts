@@ -76,6 +76,19 @@ describe("parseTransactionsCsv", () => {
     expect(errors[0].row).toBe(2);
   });
 
+  it("skips the derived 'net salary' category so pay isn't double-counted", () => {
+    const csv = [
+      "date,amount,category",
+      "2026-06-01,6800,Gross Salary",
+      "2026-06-01,5100,Net Salary",
+    ].join("\n");
+
+    const { valid } = parseTransactionsCsv(csv);
+
+    expect(valid).toHaveLength(1);
+    expect(valid[0]).toMatchObject({ category: "Gross Salary", amount: 6800 });
+  });
+
   it("handles quoted fields containing commas", () => {
     const csv = ['date,amount,description', '2026-06-01,-50,"Dinner, drinks"'].join(
       "\n",
@@ -158,6 +171,45 @@ describe("parseWideTransactionsCsv", () => {
       amount: 204,
     });
     expect(valid.find((t) => t.category === "salary")?.type).toBe("INCOME");
+  });
+
+  it("classifies '<account> transfer to <account>' columns as transfers", () => {
+    const csv = [
+      ",kiwibank transfer to sharesies,sharesies transfer to kiwibank,wise transfer to kiwibank",
+      "04/04/2026,830.63,,",
+      "16/04/2026,,1000,",
+      "20/04/2026,,,250",
+    ].join("\n");
+    const { valid } = parseWideTransactionsCsv(csv);
+    expect(valid).toHaveLength(3);
+    expect(valid.every((t) => t.type === "TRANSFER")).toBe(true);
+  });
+
+  it("classifies 'kiwisaver contribution' as a transfer", () => {
+    const csv = [",kiwisaver contribution", "01/01/2026,204"].join("\n");
+    const { valid } = parseWideTransactionsCsv(csv);
+    expect(valid[0]).toMatchObject({ type: "TRANSFER", amount: 204 });
+  });
+
+  it("classifies 'gross salary' and 'inheritence' as income", () => {
+    const csv = [
+      ",gross salary,inheritence",
+      "01/01/2026,6800,",
+      "13/01/2026,,11702.32",
+    ].join("\n");
+    const { valid } = parseWideTransactionsCsv(csv);
+    expect(valid.find((t) => t.category === "gross salary")?.type).toBe("INCOME");
+    expect(valid.find((t) => t.category === "inheritence")).toMatchObject({
+      type: "INCOME",
+      amount: 11702.32,
+    });
+  });
+
+  it("ignores the derived 'net salary' column so pay isn't double-counted", () => {
+    const csv = [",gross salary,net salary", "01/01/2026,6800,5100"].join("\n");
+    const { valid } = parseWideTransactionsCsv(csv);
+    expect(valid).toHaveLength(1);
+    expect(valid[0].category).toBe("gross salary");
   });
 
   it("reports an invalid date without dropping other rows", () => {

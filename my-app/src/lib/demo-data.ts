@@ -18,77 +18,123 @@ const daysAgoUtc = (n: number) => {
   return d;
 };
 
-const demoTransactions = [
-  // Pay is recorded gross, with PAYE/student-loan as deductions and KiwiSaver as
-  // a transfer to wealth — so the dashboard can show effective tax + savings rate.
-  { type: "INCOME", amount: 6800, category: "Salary", description: "Gross pay", daysAgo: 28 },
-  { type: "EXPENSE", amount: 1300, category: "Tax", description: "PAYE", daysAgo: 28 },
-  { type: "EXPENSE", amount: 480, category: "Student loan", description: "Repayment", daysAgo: 28 },
-  { type: "TRANSFER", amount: 204, category: "KiwiSaver", description: "3% contribution", daysAgo: 28 },
-  { type: "INCOME", amount: 6800, category: "Salary", description: "Gross pay", daysAgo: 0 },
-  { type: "EXPENSE", amount: 1300, category: "Tax", description: "PAYE", daysAgo: 0 },
-  { type: "EXPENSE", amount: 480, category: "Student loan", description: "Repayment", daysAgo: 0 },
-  { type: "TRANSFER", amount: 204, category: "KiwiSaver", description: "3% contribution", daysAgo: 0 },
-  { type: "INCOME", amount: 320.5, category: "Dividends", description: "ETF distribution", daysAgo: 14 },
-  { type: "EXPENSE", amount: 1850, category: "Rent", description: "Apartment", daysAgo: 27 },
-  { type: "EXPENSE", amount: 1850, category: "Rent", description: "Apartment", daysAgo: 1 },
-  { type: "EXPENSE", amount: 142.3, category: "Groceries", description: "Weekly shop", daysAgo: 25 },
-  { type: "EXPENSE", amount: 98.75, category: "Groceries", description: "Weekly shop", daysAgo: 18 },
-  { type: "EXPENSE", amount: 121.4, category: "Groceries", description: "Weekly shop", daysAgo: 4 },
-  { type: "EXPENSE", amount: 64.0, category: "Transport", description: "Fuel", daysAgo: 20 },
-  { type: "EXPENSE", amount: 18.5, category: "Dining", description: "Lunch", daysAgo: 12 },
-  { type: "EXPENSE", amount: 56.8, category: "Dining", description: "Dinner out", daysAgo: 6 },
-  { type: "EXPENSE", amount: 22.99, category: "Subscriptions", description: "Streaming", daysAgo: 10 },
-  { type: "EXPENSE", amount: 240, category: "Utilities", description: "Electricity", daysAgo: 9 },
-  // Own-account move (bank → Sharesies): a TRANSFER, so it's excluded from
-  // income/expense and shown separately.
-  { type: "TRANSFER", amount: 600, category: "To Sharesies", description: "Investing", daysAgo: 26 },
-  { type: "TRANSFER", amount: 600, category: "To Sharesies", description: "Investing", daysAgo: 2 },
-] as const;
+// Roughly a month, in days — used to space recurring entries across the year so
+// the demo dashboards (monthly bars, savings rate, net-worth trend) have a full
+// 12 months to plot rather than a single cluster.
+const MONTH_DAYS = 30;
 
+type DemoTxn = {
+  type: "INCOME" | "EXPENSE" | "TRANSFER";
+  amount: number;
+  category: string;
+  description?: string;
+  daysAgo: number;
+};
+
+// A year of demo transactions: twelve months of recurring cashflow plus some
+// scattered variable spend and one-off income. Pay is recorded gross, with
+// PAYE/student-loan as deductions and KiwiSaver as a transfer to wealth — so the
+// dashboard can show effective tax + savings rate. The own-account move to
+// Sharesies is a TRANSFER (excluded from income/expense, shown separately).
+function buildDemoTransactions(): DemoTxn[] {
+  const txns: DemoTxn[] = [];
+  for (let m = 11; m >= 0; m--) {
+    const payday = m * MONTH_DAYS;
+    txns.push(
+      { type: "INCOME", amount: 6800, category: "Salary", description: "Gross pay", daysAgo: payday },
+      { type: "EXPENSE", amount: 1300, category: "Tax", description: "PAYE", daysAgo: payday },
+      { type: "EXPENSE", amount: 480, category: "Student loan", description: "Repayment", daysAgo: payday },
+      { type: "TRANSFER", amount: 204, category: "KiwiSaver", description: "3% contribution", daysAgo: payday },
+      { type: "EXPENSE", amount: 1850, category: "Rent", description: "Apartment", daysAgo: payday + 1 },
+      { type: "TRANSFER", amount: 600, category: "To Sharesies", description: "Investing", daysAgo: payday + 3 },
+      { type: "EXPENSE", amount: 22.99, category: "Subscriptions", description: "Streaming", daysAgo: payday + 6 },
+    );
+  }
+
+  const extras: DemoTxn[] = [
+    { type: "EXPENSE", amount: 142.3, category: "Groceries", description: "Weekly shop", daysAgo: 4 },
+    { type: "EXPENSE", amount: 98.75, category: "Groceries", description: "Weekly shop", daysAgo: 18 },
+    { type: "EXPENSE", amount: 121.4, category: "Groceries", description: "Weekly shop", daysAgo: 47 },
+    { type: "EXPENSE", amount: 134.1, category: "Groceries", description: "Weekly shop", daysAgo: 88 },
+    { type: "EXPENSE", amount: 64.0, category: "Transport", description: "Fuel", daysAgo: 20 },
+    { type: "EXPENSE", amount: 72.5, category: "Transport", description: "Fuel", daysAgo: 110 },
+    { type: "EXPENSE", amount: 56.8, category: "Dining", description: "Dinner out", daysAgo: 6 },
+    { type: "EXPENSE", amount: 41.2, category: "Dining", description: "Lunch", daysAgo: 73 },
+    { type: "EXPENSE", amount: 240, category: "Utilities", description: "Electricity", daysAgo: 9 },
+    { type: "EXPENSE", amount: 215, category: "Utilities", description: "Electricity", daysAgo: 99 },
+    { type: "INCOME", amount: 320.5, category: "Dividends", description: "ETF distribution", daysAgo: 30 },
+    { type: "INCOME", amount: 298.4, category: "Dividends", description: "ETF distribution", daysAgo: 120 },
+    { type: "INCOME", amount: 410.0, category: "Dividends", description: "ETF distribution", daysAgo: 210 },
+    { type: "INCOME", amount: 1500, category: "Bonus", description: "Performance bonus", daysAgo: 150 },
+  ];
+
+  return [...txns, ...extras];
+}
+
+const demoTransactions = buildDemoTransactions();
+
+// Monthly weigh-ins across the year, trending down then levelling off — enough
+// points for a proper trend line.
 const demoWeights = [
-  { daysAgo: 28, weightKg: 84.2 },
-  { daysAgo: 24, weightKg: 84.0 },
-  { daysAgo: 21, weightKg: 83.6 },
-  { daysAgo: 17, weightKg: 83.1 },
-  { daysAgo: 14, weightKg: 82.7 },
-  { daysAgo: 10, weightKg: 82.4 },
-  { daysAgo: 7, weightKg: 82.0 },
-  { daysAgo: 3, weightKg: 81.6 },
+  { daysAgo: 330, weightKg: 89.5 },
+  { daysAgo: 300, weightKg: 88.6 },
+  { daysAgo: 270, weightKg: 87.4 },
+  { daysAgo: 240, weightKg: 86.9 },
+  { daysAgo: 210, weightKg: 86.0 },
+  { daysAgo: 180, weightKg: 85.2 },
+  { daysAgo: 150, weightKg: 84.3 },
+  { daysAgo: 120, weightKg: 83.6 },
+  { daysAgo: 90, weightKg: 83.0 },
+  { daysAgo: 60, weightKg: 82.3 },
+  { daysAgo: 30, weightKg: 81.7 },
   { daysAgo: 0, weightKg: 81.4 },
 ];
 
-// Readings trend down over the month (alongside the weight loss), moving from
-// AHA "stage 1" → "elevated" → "normal" so the category badges show variety.
+// Monthly readings trend down over the year (alongside the weight loss), moving
+// from AHA "stage 2" → "stage 1" → "elevated" → "normal" so the category badges
+// show variety.
 const demoBloodPressure = [
-  { daysAgo: 28, systolic: 138, diastolic: 88, pulse: 72 },
-  { daysAgo: 24, systolic: 135, diastolic: 86, pulse: 70 },
-  { daysAgo: 21, systolic: 132, diastolic: 84, pulse: 71 },
-  { daysAgo: 17, systolic: 130, diastolic: 83, pulse: 68 },
-  { daysAgo: 14, systolic: 127, diastolic: 79, pulse: 67 },
-  { daysAgo: 10, systolic: 124, diastolic: 78, pulse: 66 },
-  { daysAgo: 7, systolic: 122, diastolic: 77, pulse: 65 },
-  { daysAgo: 3, systolic: 119, diastolic: 76, pulse: 64 },
-  { daysAgo: 0, systolic: 118, diastolic: 75, pulse: 63 },
+  { daysAgo: 330, systolic: 142, diastolic: 91, pulse: 75 },
+  { daysAgo: 300, systolic: 140, diastolic: 90, pulse: 74 },
+  { daysAgo: 270, systolic: 138, diastolic: 88, pulse: 73 },
+  { daysAgo: 240, systolic: 136, diastolic: 87, pulse: 72 },
+  { daysAgo: 210, systolic: 133, diastolic: 85, pulse: 71 },
+  { daysAgo: 180, systolic: 131, diastolic: 84, pulse: 70 },
+  { daysAgo: 150, systolic: 129, diastolic: 82, pulse: 69 },
+  { daysAgo: 120, systolic: 127, diastolic: 81, pulse: 68 },
+  { daysAgo: 90, systolic: 124, diastolic: 79, pulse: 67 },
+  { daysAgo: 60, systolic: 122, diastolic: 78, pulse: 66 },
+  { daysAgo: 30, systolic: 120, diastolic: 77, pulse: 65 },
+  { daysAgo: 0, systolic: 118, diastolic: 75, pulse: 64 },
 ];
 
+// Diet and exercise are daily logs, so the demo keeps them as a recent ~2-week
+// block (the energy-balance chart pairs intake vs burn day-by-day). The trend
+// charts that span the full year are weight, blood pressure, finance and net
+// worth above/below.
 const demoDietTotals = [
-  { daysAgo: 7, calories: 2180, protein: 165, carbs: 190, fat: 70 },
-  { daysAgo: 6, calories: 2240, protein: 150, carbs: 210, fat: 78 },
-  { daysAgo: 5, calories: 1980, protein: 170, carbs: 150, fat: 65 },
-  { daysAgo: 4, calories: 2310, protein: 158, carbs: 220, fat: 80 },
-  { daysAgo: 3, calories: 2050, protein: 175, carbs: 160, fat: 68 },
-  { daysAgo: 2, calories: 2120, protein: 162, carbs: 185, fat: 72 },
-  { daysAgo: 1, calories: 1990, protein: 168, carbs: 158, fat: 64 },
+  { daysAgo: 9, calories: 2180, protein: 165, carbs: 190, fat: 70 },
+  { daysAgo: 8, calories: 2240, protein: 150, carbs: 210, fat: 78 },
+  { daysAgo: 7, calories: 1980, protein: 170, carbs: 150, fat: 65 },
+  { daysAgo: 6, calories: 2310, protein: 158, carbs: 220, fat: 80 },
+  { daysAgo: 5, calories: 2050, protein: 175, carbs: 160, fat: 68 },
+  { daysAgo: 4, calories: 2120, protein: 162, carbs: 185, fat: 72 },
+  { daysAgo: 3, calories: 1990, protein: 168, carbs: 158, fat: 64 },
+  { daysAgo: 2, calories: 2260, protein: 155, carbs: 205, fat: 76 },
+  { daysAgo: 1, calories: 2040, protein: 172, carbs: 162, fat: 66 },
   { daysAgo: 0, calories: 2200, protein: 160, carbs: 200, fat: 74 },
 ];
 
 const demoExercise = [
+  { daysAgo: 13, activity: "Running (10 km/h)", durationMin: 38, met: 9.8, caloriesBurned: 510, steps: 5900 },
+  { daysAgo: 11, activity: "Strength training", durationMin: 45, met: 5.0, caloriesBurned: 308, steps: null },
+  { daysAgo: 10, activity: "Cycling (leisure)", durationMin: 55, met: 6.8, caloriesBurned: 512, steps: null },
+  { daysAgo: 8, activity: "Walking (brisk)", durationMin: 50, met: 4.3, caloriesBurned: 294, steps: 7100 },
   { daysAgo: 7, activity: "Running (10 km/h)", durationMin: 40, met: 9.8, caloriesBurned: 536, steps: 6200 },
-  { daysAgo: 6, activity: "Strength training", durationMin: 45, met: 5.0, caloriesBurned: 308, steps: null },
-  { daysAgo: 4, activity: "Cycling (leisure)", durationMin: 60, met: 6.8, caloriesBurned: 558, steps: null },
-  { daysAgo: 3, activity: "Walking (brisk)", durationMin: 50, met: 4.3, caloriesBurned: 294, steps: 7100 },
-  { daysAgo: 1, activity: "HIIT", durationMin: 30, met: 8.0, caloriesBurned: 328, steps: null },
+  { daysAgo: 5, activity: "HIIT", durationMin: 30, met: 8.0, caloriesBurned: 328, steps: null },
+  { daysAgo: 4, activity: "Strength training", durationMin: 48, met: 5.0, caloriesBurned: 330, steps: null },
+  { daysAgo: 3, activity: "Swimming (laps)", durationMin: 35, met: 7.0, caloriesBurned: 360, steps: null },
+  { daysAgo: 1, activity: "Cycling (leisure)", durationMin: 60, met: 6.8, caloriesBurned: 558, steps: null },
   { daysAgo: 0, activity: "Strength training", durationMin: 50, met: 5.0, caloriesBurned: 342, steps: null },
 ];
 
@@ -99,20 +145,26 @@ const demoFoodItems = [
   { name: "Banana", brand: null, category: "Fruit", calories: 89, protein: 1.1, carbs: 23, fat: 0.3, fiber: 2.6, sugar: 12 },
   { name: "Almonds", brand: null, category: "Nuts", calories: 579, protein: 21, carbs: 22, fat: 50, fiber: 12, sugar: null },
   { name: "Brown rice (cooked)", brand: null, category: "Grains", calories: 123, protein: 2.7, carbs: 26, fat: 1, fiber: 1.8, sugar: null },
+  { name: "Eggs", brand: null, category: "Dairy", calories: 143, protein: 13, carbs: 1.1, fat: 9.5, fiber: null, sugar: null },
+  { name: "Salmon fillet", brand: null, category: "Seafood", calories: 208, protein: 20, carbs: 0, fat: 13, fiber: null, sugar: null },
+  { name: "Broccoli", brand: null, category: "Vegetables", calories: 34, protein: 2.8, carbs: 7, fat: 0.4, fiber: 2.6, sugar: 1.7 },
+  { name: "Olive oil", brand: null, category: "Oils", calories: 884, protein: 0, carbs: 0, fat: 100, fiber: null, sugar: null },
 ];
 
-// Net-worth accounts with a few monthly balance snapshots (oldest → newest),
-// showing wealth trending up across cash, shares, super and crypto.
+// Net-worth accounts with twelve monthly balance snapshots each (oldest →
+// newest), showing wealth trending up across cash, shares, super and crypto
+// while the student loan is paid down — a full year for the over-time chart.
 const demoNetWorth = [
-  { name: "Kiwibank", institution: "Kiwibank", kind: "ASSET" as const, assetClass: "CASH" as const, currency: "NZD", balances: [7800, 8200, 8600, 9000] },
-  { name: "Sharesies", institution: "Sharesies", kind: "ASSET" as const, assetClass: "SHARES" as const, currency: "NZD", balances: [14000, 15200, 16100, 17400] },
-  { name: "KiwiSaver", institution: "Sharesies", kind: "ASSET" as const, assetClass: "SUPER" as const, currency: "NZD", balances: [31000, 32200, 33100, 34500] },
-  { name: "crypto.com", institution: "crypto.com", kind: "ASSET" as const, assetClass: "CRYPTO" as const, currency: "NZD", balances: [3200, 2900, 3600, 4100] },
-  { name: "CBA", institution: "Commonwealth Bank", kind: "ASSET" as const, assetClass: "CASH" as const, currency: "AUD", balances: [2200, 2000, 2500, 2300] },
-  // A liability — the balance owed shrinks as it's paid down.
-  { name: "Student loan", institution: "IRD", kind: "LIABILITY" as const, assetClass: "CASH" as const, currency: "NZD", balances: [9600, 9400, 9200, 9000] },
+  { name: "Kiwibank", institution: "Kiwibank", kind: "ASSET" as const, assetClass: "CASH" as const, currency: "NZD", balances: [6500, 6800, 7100, 6900, 7400, 7800, 8100, 8400, 8200, 8700, 9100, 9400] },
+  { name: "Sharesies", institution: "Sharesies", kind: "ASSET" as const, assetClass: "SHARES" as const, currency: "NZD", balances: [10800, 11300, 11900, 12600, 13100, 13900, 14600, 15200, 15000, 16100, 16900, 17400] },
+  { name: "KiwiSaver", institution: "Sharesies", kind: "ASSET" as const, assetClass: "SUPER" as const, currency: "NZD", balances: [28800, 29400, 30000, 30700, 31300, 31900, 32500, 33100, 33700, 34300, 34900, 35500] },
+  { name: "crypto.com", institution: "crypto.com", kind: "ASSET" as const, assetClass: "CRYPTO" as const, currency: "NZD", balances: [2400, 2900, 2600, 3200, 2800, 3500, 3100, 3700, 3300, 3900, 3600, 4100] },
+  { name: "CBA", institution: "Commonwealth Bank", kind: "ASSET" as const, assetClass: "CASH" as const, currency: "AUD", balances: [1700, 1800, 1900, 2000, 1950, 2100, 2050, 2200, 2150, 2250, 2300, 2350] },
+  // A liability — the balance owed shrinks ~$480/month as it's paid down,
+  // matching the student-loan repayments in the transaction list.
+  { name: "Student loan", institution: "IRD", kind: "LIABILITY" as const, assetClass: "CASH" as const, currency: "NZD", balances: [10560, 10080, 9600, 9120, 8640, 8160, 7680, 7200, 6720, 6240, 5760, 5280] },
 ];
-const SNAPSHOT_DAYS_AGO = [90, 60, 30, 0];
+const SNAPSHOT_DAYS_AGO = [330, 300, 270, 240, 210, 180, 150, 120, 90, 60, 30, 0];
 
 export const DEMO_COUNTS = {
   transactions: demoTransactions.length,

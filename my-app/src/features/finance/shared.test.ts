@@ -57,6 +57,35 @@ describe("getSharedFinance", () => {
     expect(result!.summary.totalExpense).toBeGreaterThan(0);
   });
 
+  it("includes net-worth accounts and snapshots when present", async () => {
+    findUnique.mockResolvedValue({
+      name: "Alex Demo",
+      transactions: [],
+      wealthAccounts: [
+        { id: "acc-1", name: "Kiwibank", institution: "Kiwibank", kind: "ASSET", assetClass: "CASH", currency: "NZD" },
+      ],
+      balanceSnapshots: [
+        { id: "snap-1", accountId: "acc-1", date: new Date("2026-06-01T00:00:00.000Z"), balance: 9000 },
+      ],
+    });
+
+    const result = await getSharedFinance("example-user");
+
+    expect(result!.netWorth.accounts).toHaveLength(1);
+    expect(result!.netWorth.snapshots[0]).toMatchObject({
+      accountId: "acc-1",
+      balance: 9000,
+    });
+  });
+
+  it("defaults net worth to empty when the user has no accounts", async () => {
+    findUnique.mockResolvedValue({ name: "Alex Demo", transactions: [row()] });
+
+    const result = await getSharedFinance("example-user");
+
+    expect(result!.netWorth).toEqual({ accounts: [], snapshots: [] });
+  });
+
   it("serializes Decimal/Date rows into plain DTOs", async () => {
     findUnique.mockResolvedValue({ name: "Alex Demo", transactions: [row()] });
 
