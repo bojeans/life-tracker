@@ -36,9 +36,9 @@ export function DietDashboardView({
   const daily = useMemo(() => dailyMacros(entries), [entries]);
   const macroSplit = useMemo(
     () => [
-      { name: "Protein", value: summary.totalProtein, key: "protein" as const },
-      { name: "Carbs", value: summary.totalCarbs, key: "carbs" as const },
-      { name: "Fat", value: summary.totalFat, key: "fat" as const },
+      { name: "Protein", value: summary.avgProteinPerDay, key: "protein" as const },
+      { name: "Carbs", value: summary.avgCarbsPerDay, key: "carbs" as const },
+      { name: "Fat", value: summary.avgFatPerDay, key: "fat" as const },
     ],
     [summary],
   );
@@ -56,9 +56,9 @@ export function DietDashboardView({
     <div className="space-y-6">
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Avg calories / day" value={`${summary.avgCaloriesPerDay}`} />
-        <StatCard label="Protein (total)" value={`${summary.totalProtein} g`} />
-        <StatCard label="Carbs (total)" value={`${summary.totalCarbs} g`} />
-        <StatCard label="Fat (total)" value={`${summary.totalFat} g`} />
+        <StatCard label="Avg protein / day" value={`${summary.avgProteinPerDay} g`} />
+        <StatCard label="Avg carbs / day" value={`${summary.avgCarbsPerDay} g`} />
+        <StatCard label="Avg fat / day" value={`${summary.avgFatPerDay} g`} />
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -74,8 +74,8 @@ export function DietDashboardView({
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Macro split (grams)">
-          {summary.totalProtein + summary.totalCarbs + summary.totalFat === 0 ? (
+        <ChartCard title="Macro split (avg g / day)">
+          {summary.avgProteinPerDay + summary.avgCarbsPerDay + summary.avgFatPerDay === 0 ? (
             <div className="text-muted-foreground flex h-[260px] items-center justify-center text-sm">
               No macros logged yet.
             </div>
