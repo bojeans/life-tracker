@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartCard } from "./dashboard-ui";
 import type { WeightPoint } from "./weight/analytics";
 import type { BloodPressurePoint } from "./blood-pressure/analytics";
 import type { BalanceDay } from "./energy-balance";
@@ -90,26 +91,11 @@ export function SharedHealthCharts({
               <Tooltip formatter={(v) => `${Number(v)} kcal`} />
               <Legend />
               <Bar dataKey="intake" name="Intake" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="out" name="Burned (total)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="out" name="Total burn" fill="#f59e0b" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
       )}
-    </div>
-  );
-}
-
-function ChartCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <h3 className="font-semibold">{title}</h3>
-      {children}
     </div>
   );
 }

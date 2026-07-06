@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { getExerciseEntries } from "./actions";
 import { dailyBurn, summarizeExercise } from "./analytics";
+import { StatCard } from "../dashboard-ui";
 import type { ExerciseEntryDTO } from "./types";
 
 export function ExerciseDashboardView({
@@ -40,15 +41,14 @@ export function ExerciseDashboardView({
 
   return (
     <div className="space-y-6">
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Avg burn / day" value={`${summary.avgCaloriesPerDay} kcal`} />
-        <StatCard label="Total burned" value={`${summary.totalCalories} kcal`} />
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard label="Avg exercise burn / day" value={`${summary.avgCaloriesPerDay} kcal`} />
         <StatCard label="Sessions" value={`${summary.sessionCount}`} />
-        <StatCard label="Total steps" value={summary.totalSteps.toLocaleString()} />
+        <StatCard label="Days logged" value={`${summary.dayCount}`} />
       </section>
 
       <div className="space-y-3 rounded-lg border p-4">
-        <h2 className="font-semibold">Calories burned per day</h2>
+        <h2 className="font-semibold">Exercise calories burned per day</h2>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={daily} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -59,15 +59,6 @@ export function ExerciseDashboardView({
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border p-4">
-      <p className="text-muted-foreground text-sm">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
     </div>
   );
 }

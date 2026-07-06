@@ -8,6 +8,9 @@ export type DietSummary = {
   entryCount: number;
   dayCount: number;
   avgCaloriesPerDay: number;
+  avgProteinPerDay: number;
+  avgCarbsPerDay: number;
+  avgFatPerDay: number;
 };
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -39,5 +42,8 @@ export function summarizeDiet(entries: DietEntryDTO[]): DietSummary {
     entryCount: entries.length,
     dayCount,
     avgCaloriesPerDay: dayCount ? round1(totalCalories / dayCount) : 0,
+    avgProteinPerDay: dayCount ? round1(totalProtein / dayCount) : 0,
+    avgCarbsPerDay: dayCount ? round1(totalCarbs / dayCount) : 0,
+    avgFatPerDay: dayCount ? round1(totalFat / dayCount) : 0,
   };
 }

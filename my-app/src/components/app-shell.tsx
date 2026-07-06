@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Menu } from "lucide-react";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { DemoBanner } from "@/features/demo/demo-banner";
@@ -41,7 +42,9 @@ export function AppShell({
             <SidebarNav onNavigate={() => setOpen(false)} />
           </SheetContent>
         </Sheet>
-        <span className="font-semibold">Life Tracker</span>
+        <Link href="/" className="font-semibold">
+          Life Tracker
+        </Link>
       </header>
 
       <main className="flex-1">

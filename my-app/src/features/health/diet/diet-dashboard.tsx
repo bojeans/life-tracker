@@ -17,6 +17,7 @@ import {
 import { getDietEntries } from "./actions";
 import { dailyMacros } from "./analytics";
 import { summarizeDiet } from "./summary";
+import { ChartCard, StatCard } from "../dashboard-ui";
 import type { DietEntryDTO } from "./types";
 
 const MACRO_COLORS = { protein: "#0ea5e9", carbs: "#f59e0b", fat: "#f43f5e" };
@@ -36,9 +37,9 @@ export function DietDashboardView({
   const daily = useMemo(() => dailyMacros(entries), [entries]);
   const macroSplit = useMemo(
     () => [
-      { name: "Protein", value: summary.totalProtein, key: "protein" as const },
-      { name: "Carbs", value: summary.totalCarbs, key: "carbs" as const },
-      { name: "Fat", value: summary.totalFat, key: "fat" as const },
+      { name: "Protein", value: summary.avgProteinPerDay, key: "protein" as const },
+      { name: "Carbs", value: summary.avgCarbsPerDay, key: "carbs" as const },
+      { name: "Fat", value: summary.avgFatPerDay, key: "fat" as const },
     ],
     [summary],
   );
@@ -56,9 +57,9 @@ export function DietDashboardView({
     <div className="space-y-6">
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Avg calories / day" value={`${summary.avgCaloriesPerDay}`} />
-        <StatCard label="Protein (total)" value={`${summary.totalProtein} g`} />
-        <StatCard label="Carbs (total)" value={`${summary.totalCarbs} g`} />
-        <StatCard label="Fat (total)" value={`${summary.totalFat} g`} />
+        <StatCard label="Avg protein / day" value={`${summary.avgProteinPerDay} g`} />
+        <StatCard label="Avg carbs / day" value={`${summary.avgCarbsPerDay} g`} />
+        <StatCard label="Avg fat / day" value={`${summary.avgFatPerDay} g`} />
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -74,8 +75,8 @@ export function DietDashboardView({
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Macro split (grams)">
-          {summary.totalProtein + summary.totalCarbs + summary.totalFat === 0 ? (
+        <ChartCard title="Macro split (avg g / day)">
+          {summary.avgProteinPerDay + summary.avgCarbsPerDay + summary.avgFatPerDay === 0 ? (
             <div className="text-muted-foreground flex h-[260px] items-center justify-center text-sm">
               No macros logged yet.
             </div>
@@ -102,30 +103,6 @@ export function DietDashboardView({
           )}
         </ChartCard>
       </section>
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border p-4">
-      <p className="text-muted-foreground text-sm">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function ChartCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <h2 className="font-semibold">{title}</h2>
-      {children}
     </div>
   );
 }

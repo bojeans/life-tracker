@@ -18,7 +18,13 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-2 py-3 text-lg font-semibold">Life Tracker</div>
+      <Link
+        href="/"
+        onClick={onNavigate}
+        className="rounded-md px-2 py-3 text-lg font-semibold transition-colors hover:text-foreground"
+      >
+        Life Tracker
+      </Link>
       <nav className="mt-2 flex flex-1 flex-col gap-1">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);

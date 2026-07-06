@@ -20,6 +20,7 @@ import {
   classifyBloodPressure,
 } from "./analytics";
 import { CategoryBadge } from "./category-badge";
+import { StatCard } from "../dashboard-ui";
 import type { BloodPressureEntryDTO } from "./types";
 
 export function BloodPressureDashboardView({
@@ -129,32 +130,6 @@ export function BloodPressureDashboardView({
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  unit,
-  accent,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  accent?: string;
-}) {
-  return (
-    <div className="rounded-lg border p-4">
-      <p className="text-muted-foreground text-sm">{label}</p>
-      <p className={`mt-1 text-xl font-semibold ${accent ?? ""}`}>
-        {value}
-        {unit ? (
-          <span className="text-muted-foreground ml-1 text-sm font-normal">
-            {unit}
-          </span>
-        ) : null}
-      </p>
     </div>
   );
 }
