@@ -17,6 +17,7 @@ import {
 import { getDietEntries } from "./actions";
 import { dailyMacros } from "./analytics";
 import { summarizeDiet } from "./summary";
+import { ChartCard, StatCard } from "../dashboard-ui";
 import type { DietEntryDTO } from "./types";
 
 const MACRO_COLORS = { protein: "#0ea5e9", carbs: "#f59e0b", fat: "#f43f5e" };
@@ -102,30 +103,6 @@ export function DietDashboardView({
           )}
         </ChartCard>
       </section>
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border p-4">
-      <p className="text-muted-foreground text-sm">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function ChartCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <h2 className="font-semibold">{title}</h2>
-      {children}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { getExerciseEntries } from "./actions";
 import { dailyBurn, summarizeExercise } from "./analytics";
+import { StatCard } from "../dashboard-ui";
 import type { ExerciseEntryDTO } from "./types";
 
 export function ExerciseDashboardView({
@@ -58,15 +59,6 @@ export function ExerciseDashboardView({
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border p-4">
-      <p className="text-muted-foreground text-sm">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { getWeightEntries } from "./actions";
 import { weightTrend, weightChange } from "./analytics";
+import { StatCard } from "../dashboard-ui";
 import type { WeightEntryDTO } from "./types";
 
 export function WeightDashboardView({
@@ -89,23 +90,6 @@ export function WeightDashboardView({
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: string;
-}) {
-  return (
-    <div className="rounded-lg border p-4">
-      <p className="text-muted-foreground text-sm">{label}</p>
-      <p className={`mt-1 text-xl font-semibold ${accent ?? ""}`}>{value}</p>
     </div>
   );
 }
